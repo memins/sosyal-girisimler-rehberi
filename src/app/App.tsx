@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { ScrollToTop } from '@/components/scroll-to-top'
 import { ErrorBoundary } from './ErrorBoundary'
 import { SiteShell } from './layout/SiteShell'
 
@@ -58,6 +59,7 @@ const MediaLibraryPage = lazy(() =>
 export function App() {
 	return (
 		<ErrorBoundary>
+			<ScrollToTop />
 			<Routes>
 				<Route element={<SiteShell />}>
 					<Route path="/" element={<HomePage />} />
