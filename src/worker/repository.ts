@@ -16,8 +16,12 @@ import type {
 	Submission,
 	SubmissionInput,
 	TaxonomyItem,
+	TaxonomyItemAdmin,
+	TaxonomyType,
+	UpdateTaxonomyInput,
 	UpsertEditorialListInput,
 	UpsertEnterpriseInput,
+	UpsertTaxonomyInput,
 } from '@/shared/types'
 import type { EnterpriseFilters } from './request'
 
@@ -1035,4 +1039,184 @@ function slugify(value: string): string {
 		.replace(/ç/g, 'c')
 		.replace(/[^a-z0-9]+/g, '-')
 		.replace(/^-+|-+$/g, '')
+}
+
+interface TaxonomyConfig {
+	table: string
+	idColumn: string
+	hasIcon: boolean
+	refTable: string
+	refColumn: string
+	label: string
+}
+
+const TAXONOMY_CONFIGS: Record<TaxonomyType, TaxonomyConfig> = {
+	categories: {
+		table: 'categories',
+		idColumn: 'id',
+		hasIcon: true,
+		refTable: 'enterprise_categories',
+		refColumn: 'category_id',
+		label: 'Kategori',
+	},
+	audiences: {
+		table: 'audiences',
+		idColumn: 'id',
+		hasIcon: true,
+		refTable: 'enterprise_audiences',
+		refColumn: 'audience_id',
+		label: 'Hedef kitle',
+	},
+	'business-models': {
+		table: 'business_models',
+		idColumn: 'id',
+		hasIcon: false,
+		refTable: 'enterprise_business_models',
+		refColumn: 'business_model_id',
+		label: 'İş modeli',
+	},
+}
+
+function getTaxonomyConfig(type: TaxonomyType): TaxonomyConfig {
+	const cfg = TAXONOMY_CONFIGS[type]
+	if (!cfg) throw new Error(`Bilinmeyen sınıflandırma türü: ${type}`)
+	return cfg
+}
+
+export async function listTaxonomyAdmin(
+	db: D1Database,
+	type: TaxonomyType,
+): Promise<Array<TaxonomyItemAdmin>> {
+	const cfg = getTaxonomyConfig(type)
+	const iconExpr = cfg.hasIcon ? 't.icon' : 'NULL AS icon'
+	const sql = `SELECT t.${cfg.idColumn} AS id, t.name, ${iconExpr}, t.sort_order,
+		(SELECT COUNT(*) FROM ${cfg.refTable} ref WHERE ref.${cfg.refColumn} = t.${cfg.idColumn}) AS usage_count
+		FROM ${cfg.table} t
+		ORDER BY t.sort_order, t.name`
+	const rows = await db.prepare(sql).all<{
+		id: string
+		name: string
+		icon: string | null
+		sort_order: number
+		usage_count: number
+	}>()
+	return rows.results.map((row) => ({
+		id: row.id,
+		name: row.name,
+		icon: row.icon,
+		sortOrder: row.sort_order,
+		usageCount: row.usage_count ?? 0,
+	}))
+}
+
+export async function createTaxonomyItem(
+	db: D1Database,
+	type: TaxonomyType,
+	input: UpsertTaxonomyInput,
+): Promise<TaxonomyItemAdmin> {
+	const cfg = getTaxonomyConfig(type)
+
+	if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(input.id)) {
+		throw new Error('Kimlik (id) sadece küçük harf, sayı ve tire içermeli.')
+	}
+	if (!input.name || input.name.trim().length === 0) {
+		throw new Error(`${cfg.label} adı gerekli.`)
+	}
+
+	const exists = await db
+		.prepare(`SELECT 1 FROM ${cfg.table} WHERE ${cfg.idColumn} = ? LIMIT 1`)
+		.bind(input.id)
+		.first()
+	if (exists) throw new Error(`Bu kimlik zaten kullanılıyor: ${input.id}`)
+
+	const sortOrder = input.sortOrder ?? (await getNextTaxonomySortOrder(db, cfg))
+	if (cfg.hasIcon) {
+		await db
+			.prepare(
+				`INSERT INTO ${cfg.table} (${cfg.idColumn}, name, icon, sort_order) VALUES (?, ?, ?, ?)`,
+			)
+			.bind(input.id, input.name.trim(), input.icon ?? null, sortOrder)
+			.run()
+	} else {
+		await db
+			.prepare(
+				`INSERT INTO ${cfg.table} (${cfg.idColumn}, name, sort_order) VALUES (?, ?, ?)`,
+			)
+			.bind(input.id, input.name.trim(), sortOrder)
+			.run()
+	}
+
+	return {
+		id: input.id,
+		name: input.name.trim(),
+		icon: cfg.hasIcon ? (input.icon ?? null) : null,
+		sortOrder,
+		usageCount: 0,
+	}
+}
+
+export async function updateTaxonomyItem(
+	db: D1Database,
+	type: TaxonomyType,
+	id: string,
+	patch: UpdateTaxonomyInput,
+): Promise<void> {
+	const cfg = getTaxonomyConfig(type)
+	const updates: Array<string> = []
+	const params: Array<string | number | null> = []
+
+	if (typeof patch.name === 'string') {
+		if (patch.name.trim().length === 0) {
+			throw new Error(`${cfg.label} adı boş olamaz.`)
+		}
+		updates.push('name = ?')
+		params.push(patch.name.trim())
+	}
+	if (cfg.hasIcon && (typeof patch.icon === 'string' || patch.icon === null)) {
+		updates.push('icon = ?')
+		params.push(patch.icon)
+	}
+	if (typeof patch.sortOrder === 'number') {
+		updates.push('sort_order = ?')
+		params.push(patch.sortOrder)
+	}
+	if (updates.length === 0) return
+
+	params.push(id)
+	await db
+		.prepare(`UPDATE ${cfg.table} SET ${updates.join(', ')} WHERE ${cfg.idColumn} = ?`)
+		.bind(...params)
+		.run()
+}
+
+export async function deleteTaxonomyItem(
+	db: D1Database,
+	type: TaxonomyType,
+	id: string,
+): Promise<void> {
+	const cfg = getTaxonomyConfig(type)
+	const usageRow = await db
+		.prepare(`SELECT COUNT(*) AS count FROM ${cfg.refTable} WHERE ${cfg.refColumn} = ?`)
+		.bind(id)
+		.first<CountRow>()
+	const usageCount = usageRow?.count ?? 0
+	if (usageCount > 0) {
+		throw new Error(
+			`${cfg.label} ${usageCount} girişimde kullanılıyor — önce ilişkileri kaldır.`,
+		)
+	}
+	await db
+		.prepare(`DELETE FROM ${cfg.table} WHERE ${cfg.idColumn} = ?`)
+		.bind(id)
+		.run()
+}
+
+async function getNextTaxonomySortOrder(
+	db: D1Database,
+	cfg: TaxonomyConfig,
+): Promise<number> {
+	const row = await db
+		.prepare(`SELECT MAX(sort_order) AS max FROM ${cfg.table}`)
+		.first<{ max: number | null }>()
+	return (row?.max ?? 0) + 1
 }

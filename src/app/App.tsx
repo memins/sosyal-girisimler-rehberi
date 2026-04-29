@@ -55,6 +55,9 @@ const MediaLibraryPage = lazy(() =>
 		default: m.MediaLibraryPage,
 	})),
 )
+const TaxonomyPage = lazy(() =>
+	import('@/features/admin/taxonomy/TaxonomyPage').then((m) => ({ default: m.TaxonomyPage })),
+)
 
 export function App() {
 	return (
@@ -86,6 +89,7 @@ export function App() {
 						path="editorial-lists/:id/edit"
 						element={<EditorialFormPage mode="edit" />}
 					/>
+					<Route path="taxonomy" element={<TaxonomyPage />} />
 					<Route path="users" element={<UsersListPage />} />
 					<Route path="media" element={<MediaLibraryPage />} />
 				</Route>

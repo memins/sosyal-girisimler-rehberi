@@ -18,7 +18,14 @@ import type {
 	UpsertEnterpriseInput,
 } from '@/shared/types'
 
-import type { AdminMediaObject, EnterpriseMediaItem } from '@/shared/types'
+import type {
+	AdminMediaObject,
+	EnterpriseMediaItem,
+	TaxonomyItemAdmin,
+	TaxonomyType,
+	UpdateTaxonomyInput,
+	UpsertTaxonomyInput,
+} from '@/shared/types'
 
 type AdminSummary = {
 	enterprises: number
@@ -152,6 +159,36 @@ export async function deleteEnterpriseGalleryItem(
 ): Promise<{ ok: true }> {
 	const response = await fetch(
 		`/api/admin/enterprises/${encodeURIComponent(enterpriseId)}/media/${encodeURIComponent(mediaKey)}`,
+		{ method: 'DELETE', credentials: 'include' },
+	)
+	return parseResponse(response)
+}
+
+export async function listAdminTaxonomy(type: TaxonomyType): Promise<Array<TaxonomyItemAdmin>> {
+	return apiGet(`/api/admin/taxonomy/${type}`)
+}
+
+export async function createAdminTaxonomy(
+	type: TaxonomyType,
+	input: UpsertTaxonomyInput,
+): Promise<TaxonomyItemAdmin> {
+	return apiPost(`/api/admin/taxonomy/${type}`, input)
+}
+
+export async function updateAdminTaxonomy(
+	type: TaxonomyType,
+	id: string,
+	patch: UpdateTaxonomyInput,
+): Promise<{ ok: true }> {
+	return apiPatch(`/api/admin/taxonomy/${type}/${encodeURIComponent(id)}`, patch)
+}
+
+export async function deleteAdminTaxonomy(
+	type: TaxonomyType,
+	id: string,
+): Promise<{ ok: true }> {
+	const response = await fetch(
+		`/api/admin/taxonomy/${type}/${encodeURIComponent(id)}`,
 		{ method: 'DELETE', credentials: 'include' },
 	)
 	return parseResponse(response)

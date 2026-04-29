@@ -115,6 +115,7 @@ function buildCrumbs(pathname: string): Array<Crumb> {
 		enterprises: { label: 'Girişimler', to: '/admin/enterprises' },
 		submissions: { label: 'Öneriler', to: '/admin/submissions' },
 		'editorial-lists': { label: 'Editöryel listeler', to: '/admin/editorial-lists' },
+		taxonomy: { label: 'Sınıflandırma', to: '/admin/taxonomy' },
 		users: { label: 'Kullanıcılar', to: '/admin/users' },
 		media: { label: 'Medya', to: '/admin/media' },
 	}

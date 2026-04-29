@@ -117,6 +117,29 @@ export type AdminMediaObject = {
 	contentType: string | null
 }
 
+export type TaxonomyType = 'categories' | 'audiences' | 'business-models'
+
+export type TaxonomyItemAdmin = {
+	id: string
+	name: string
+	icon: string | null
+	sortOrder: number
+	usageCount: number
+}
+
+export type UpsertTaxonomyInput = {
+	id: string
+	name: string
+	icon?: string | null
+	sortOrder?: number
+}
+
+export type UpdateTaxonomyInput = {
+	name?: string
+	icon?: string | null
+	sortOrder?: number
+}
+
 export type EditorialList = {
 	id: string
 	slug: string

@@ -1,10 +1,10 @@
 import {
 	Building2Icon,
 	HomeIcon,
-	ImageIcon,
 	InboxIcon,
 	LayoutDashboardIcon,
 	LogOutIcon,
+	TagsIcon,
 	UsersIcon,
 } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
@@ -27,7 +27,7 @@ const NAV_ITEMS = [
 	{ to: '/admin/enterprises', label: 'Girişimler', icon: Building2Icon },
 	{ to: '/admin/submissions', label: 'Öneriler', icon: InboxIcon },
 	{ to: '/admin/editorial-lists', label: 'Editöryel listeler', icon: HomeIcon },
-	{ to: '/admin/media', label: 'Medya', icon: ImageIcon },
+	{ to: '/admin/taxonomy', label: 'Sınıflandırma', icon: TagsIcon },
 	{ to: '/admin/users', label: 'Kullanıcılar', icon: UsersIcon, ownerOnly: true },
 ]
 

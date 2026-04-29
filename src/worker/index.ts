@@ -32,7 +32,9 @@ import {
 	addEnterpriseMedia,
 	approveSubmission,
 	createSubmission,
+	createTaxonomyItem,
 	deleteEnterpriseMedia,
+	deleteTaxonomyItem,
 	getDirectoryMeta,
 	getEnterpriseById,
 	getEnterpriseDetailBySlug,
@@ -41,12 +43,15 @@ import {
 	listEnterpriseGallery,
 	listEnterprises,
 	listSubmissions,
+	listTaxonomyAdmin,
 	rejectSubmission,
 	reorderEnterpriseMedia,
 	updateEnterpriseMedia,
+	updateTaxonomyItem,
 	upsertEditorialList,
 	upsertEnterprise,
 } from './repository'
+import type { TaxonomyType, UpdateTaxonomyInput, UpsertTaxonomyInput } from '@/shared/types'
 import { apiError, json, readJsonBody } from './responses'
 
 export default {
@@ -401,6 +406,63 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 		return listMedia(env)
 	}
 
+	const taxonomyListMatch = pathname.match(/^\/api\/admin\/taxonomy\/([a-z-]+)$/)
+	if (taxonomyListMatch) {
+		const type = taxonomyListMatch[1]
+		if (!isTaxonomyType(type)) {
+			return apiError('not_found', 'Bilinmeyen sınıflandırma türü.', 404)
+		}
+		if (request.method === 'GET') {
+			return json(await listTaxonomyAdmin(env.DB, type))
+		}
+		if (request.method === 'POST') {
+			const body = (await readJsonBody(request)) as Partial<UpsertTaxonomyInput>
+			if (typeof body.id !== 'string' || typeof body.name !== 'string') {
+				return apiError('bad_request', 'id ve name gerekli.', 400)
+			}
+			try {
+				const created = await createTaxonomyItem(env.DB, type, {
+					id: body.id,
+					name: body.name,
+					icon: typeof body.icon === 'string' ? body.icon : null,
+					sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : undefined,
+				})
+				await env.CACHE.delete('home:v1')
+				return json(created, { status: 201 })
+			} catch (error) {
+				return apiError('bad_request', errorMessage(error), 400)
+			}
+		}
+	}
+
+	const taxonomyItemMatch = pathname.match(/^\/api\/admin\/taxonomy\/([a-z-]+)\/([^/]+)$/)
+	if (taxonomyItemMatch) {
+		const type = taxonomyItemMatch[1]
+		const id = decodeURIComponent(taxonomyItemMatch[2])
+		if (!isTaxonomyType(type)) {
+			return apiError('not_found', 'Bilinmeyen sınıflandırma türü.', 404)
+		}
+		if (request.method === 'PATCH') {
+			const body = (await readJsonBody(request)) as UpdateTaxonomyInput
+			try {
+				await updateTaxonomyItem(env.DB, type, id, body)
+				await env.CACHE.delete('home:v1')
+				return json({ ok: true })
+			} catch (error) {
+				return apiError('bad_request', errorMessage(error), 400)
+			}
+		}
+		if (request.method === 'DELETE') {
+			try {
+				await deleteTaxonomyItem(env.DB, type, id)
+				await env.CACHE.delete('home:v1')
+				return json({ ok: true })
+			} catch (error) {
+				return apiError('bad_request', errorMessage(error), 409)
+			}
+		}
+	}
+
 	const galleryListMatch = pathname.match(/^\/api\/admin\/enterprises\/([^/]+)\/media$/)
 	if (galleryListMatch) {
 		const enterpriseId = decodeURIComponent(galleryListMatch[1])
@@ -464,6 +526,14 @@ async function listMedia(env: Env): Promise<Response> {
 			contentType: obj.httpMetadata?.contentType ?? null,
 		})),
 	)
+}
+
+function isTaxonomyType(value: string): value is TaxonomyType {
+	return value === 'categories' || value === 'audiences' || value === 'business-models'
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : 'İşlem tamamlanamadı.'
 }
 
 function validateAuthCredentials(email: unknown, password: unknown) {

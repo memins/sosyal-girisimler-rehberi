@@ -1,4 +1,4 @@
-import { ArrowRightIcon, Building2Icon, ImageIcon, InboxIcon, StarIcon } from 'lucide-react'
+import { ArrowRightIcon, Building2Icon, InboxIcon, StarIcon, TagsIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -70,7 +70,7 @@ export default function DashboardPage() {
 					value={data?.featured ?? '—'}
 				/>
 				<MetricCard
-					icon={ImageIcon}
+					icon={TagsIcon}
 					label="Editöryel liste"
 					value={data?.editorialLists ?? '—'}
 				/>
@@ -131,9 +131,9 @@ export default function DashboardPage() {
 							</Link>
 						</Button>
 						<Button asChild variant="outline" className="justify-start">
-							<Link to="/admin/media">
-								<ImageIcon />
-								Medya kütüphanesi
+							<Link to="/admin/taxonomy">
+								<TagsIcon />
+								Sınıflandırma yönet
 							</Link>
 						</Button>
 					</CardContent>
