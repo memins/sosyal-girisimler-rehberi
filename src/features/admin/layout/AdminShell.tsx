@@ -84,7 +84,7 @@ export function AdminShell() {
 					<div className="flex min-h-screen flex-1 flex-col">
 						<AdminTopbar onOpenSidebar={() => setMobileOpen(true)} />
 						<main className="flex-1 px-4 py-8 md:px-8 md:py-10">
-							<Suspense fallback={<RouteFallback />}>
+							<Suspense key={location.pathname} fallback={<RouteFallback />}>
 								<Outlet />
 							</Suspense>
 						</main>
