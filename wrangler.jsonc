@@ -1,0 +1,41 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "sosyal-girisimler-rehberi",
+	"account_id": "32bfb6425bcdc0a0bc569e7332ce4d21",
+	"main": "src/worker/index.ts",
+	"compatibility_date": "2026-04-29",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"directory": "./dist/client",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application"
+	},
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
+	"vars": {
+		"ENVIRONMENT": "production",
+		"ADMIN_EMAIL_DOMAIN": "genclink.com"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "sosyal-girisimler-rehberi",
+			"database_id": "d37902c1-4337-4d94-867e-e5443cb84331",
+			"migrations_dir": "./migrations"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "CACHE",
+			"id": "11d63aacbd2f4a10b6b3fe4d36f9c229"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "sosyal-girisimler-media"
+		}
+	]
+}
