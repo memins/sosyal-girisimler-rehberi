@@ -73,56 +73,19 @@ export function App() {
 				<Route path="/admin/login" element={<LoginPage />} />
 				<Route path="/admin/setup" element={<SetupPage />} />
 				<Route path="/admin" element={<AdminShell />}>
-					<Route
-						index
-						element={<DashboardPage />}
-						handle={{ crumb: 'Panel' }}
-					/>
-					<Route
-						path="enterprises"
-						element={<EnterprisesListPage />}
-						handle={{ crumb: 'Girişimler' }}
-					/>
-					<Route
-						path="enterprises/new"
-						element={<EnterpriseFormPage mode="create" />}
-						handle={{ crumb: 'Yeni girişim' }}
-					/>
-					<Route
-						path="enterprises/:id/edit"
-						element={<EnterpriseFormPage mode="edit" />}
-						handle={{ crumb: 'Düzenle' }}
-					/>
-					<Route
-						path="submissions"
-						element={<SubmissionsListPage />}
-						handle={{ crumb: 'Öneriler' }}
-					/>
-					<Route
-						path="editorial-lists"
-						element={<EditorialListPage />}
-						handle={{ crumb: 'Editöryel listeler' }}
-					/>
-					<Route
-						path="editorial-lists/new"
-						element={<EditorialFormPage mode="create" />}
-						handle={{ crumb: 'Yeni liste' }}
-					/>
+					<Route index element={<DashboardPage />} />
+					<Route path="enterprises" element={<EnterprisesListPage />} />
+					<Route path="enterprises/new" element={<EnterpriseFormPage mode="create" />} />
+					<Route path="enterprises/:id/edit" element={<EnterpriseFormPage mode="edit" />} />
+					<Route path="submissions" element={<SubmissionsListPage />} />
+					<Route path="editorial-lists" element={<EditorialListPage />} />
+					<Route path="editorial-lists/new" element={<EditorialFormPage mode="create" />} />
 					<Route
 						path="editorial-lists/:id/edit"
 						element={<EditorialFormPage mode="edit" />}
-						handle={{ crumb: 'Düzenle' }}
 					/>
-					<Route
-						path="users"
-						element={<UsersListPage />}
-						handle={{ crumb: 'Kullanıcılar' }}
-					/>
-					<Route
-						path="media"
-						element={<MediaLibraryPage />}
-						handle={{ crumb: 'Medya' }}
-					/>
+					<Route path="users" element={<UsersListPage />} />
+					<Route path="media" element={<MediaLibraryPage />} />
 				</Route>
 			</Routes>
 		</ErrorBoundary>

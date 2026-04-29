@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { Link, useMatches } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { MenuIcon } from 'lucide-react'
 import {
 	Breadcrumb,
@@ -10,10 +10,6 @@ import {
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-
-interface CrumbHandle {
-	crumb?: string | ((params: Record<string, string | undefined>) => string)
-}
 
 interface ActionSlotContextValue {
 	actions: ReactNode
@@ -43,21 +39,15 @@ interface AdminTopbarProps {
 	onOpenSidebar: () => void
 }
 
-export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
-	const matches = useMatches()
-	const ctx = useContext(ActionSlotContext)
+interface Crumb {
+	label: string
+	to?: string
+}
 
-	const crumbs = matches
-		.map((match) => {
-			const handle = match.handle as CrumbHandle | undefined
-			if (!handle?.crumb) return null
-			const label =
-				typeof handle.crumb === 'function'
-					? handle.crumb(match.params as Record<string, string | undefined>)
-					: handle.crumb
-			return { pathname: match.pathname, label }
-		})
-		.filter((c): c is { pathname: string; label: string } => c !== null)
+export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
+	const location = useLocation()
+	const ctx = useContext(ActionSlotContext)
+	const crumbs = buildCrumbs(location.pathname)
 
 	return (
 		<header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:px-8">
@@ -77,13 +67,13 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
 							{crumbs.map((crumb, index) => {
 								const isLast = index === crumbs.length - 1
 								return (
-									<BreadcrumbItem key={crumb.pathname}>
-										{isLast ? (
+									<BreadcrumbItem key={`${crumb.label}-${index}`}>
+										{isLast || !crumb.to ? (
 											<BreadcrumbPage>{crumb.label}</BreadcrumbPage>
 										) : (
 											<>
 												<BreadcrumbLink asChild>
-													<Link to={crumb.pathname}>{crumb.label}</Link>
+													<Link to={crumb.to}>{crumb.label}</Link>
 												</BreadcrumbLink>
 												<BreadcrumbSeparator />
 											</>
@@ -98,4 +88,35 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
 			<div className="flex items-center gap-2">{ctx?.actions}</div>
 		</header>
 	)
+}
+
+function buildCrumbs(pathname: string): Array<Crumb> {
+	if (pathname === '/admin' || pathname === '/admin/') {
+		return [{ label: 'Panel' }]
+	}
+
+	const segments = pathname.replace(/^\/admin\/?/, '').split('/').filter(Boolean)
+	if (segments.length === 0) return [{ label: 'Panel' }]
+
+	const root: Record<string, { label: string; to: string }> = {
+		enterprises: { label: 'Girişimler', to: '/admin/enterprises' },
+		submissions: { label: 'Öneriler', to: '/admin/submissions' },
+		'editorial-lists': { label: 'Editöryel listeler', to: '/admin/editorial-lists' },
+		users: { label: 'Kullanıcılar', to: '/admin/users' },
+		media: { label: 'Medya', to: '/admin/media' },
+	}
+
+	const [first, second, third] = segments
+	const rootEntry = root[first]
+	if (!rootEntry) return [{ label: 'Panel' }]
+
+	const crumbs: Array<Crumb> = [{ label: rootEntry.label, to: rootEntry.to }]
+
+	if (second === 'new') {
+		crumbs.push({ label: 'Yeni' })
+	} else if (third === 'edit') {
+		crumbs.push({ label: 'Düzenle' })
+	}
+
+	return crumbs
 }
