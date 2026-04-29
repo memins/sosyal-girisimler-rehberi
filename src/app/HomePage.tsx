@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ErrorBlock, LoadingGrid } from '@/components/StateBlock'
+import { TaxonomyIcon } from '@/lib/taxonomy-icon'
 
 const SDG_PALETTE = [
 	'#E5243B',
@@ -366,11 +367,8 @@ function CategoryTile({ category }: { category: CategoryWithCount }) {
 			to={`/arama?categories=${category.id}`}
 			className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 		>
-			<span
-				className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary transition group-hover:bg-primary group-hover:text-primary-foreground"
-				aria-hidden="true"
-			>
-				{category.icon ?? '◆'}
+			<span className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+				<TaxonomyIcon name={category.icon} className="size-5" />
 			</span>
 			<div className="flex flex-1 flex-col">
 				<span className="text-base font-semibold">{category.name}</span>
