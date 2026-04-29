@@ -22,7 +22,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { ErrorBlock, RouteFallback } from '@/components/StateBlock'
@@ -217,13 +216,13 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 	}
 
 	return (
-		<div className="flex flex-col gap-8 pb-24">
+		<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-24">
 			<PageHeader
 				eyebrow={mode === 'create' ? 'Yeni' : 'Düzenle'}
 				title={mode === 'create' ? 'Yeni girişim oluştur' : enterprise!.name}
 				description={
 					mode === 'create'
-						? 'Tüm temel bilgileri eksiksiz girmeye çalış. Detaylar sonradan da güncellenebilir.'
+						? 'Aşağıdaki bilgileri doldur. Sonradan da güncellenebilir.'
 						: 'İçeriği güncelle ve değişiklikleri kaydet.'
 				}
 				actions={
@@ -234,9 +233,12 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 			/>
 
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-10">
-					<Section title="Temel bilgiler">
-						<div className="grid gap-5 md:grid-cols-2">
+				<form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-5">
+					<Section
+						title="Temel bilgiler"
+						hint="Girişimin adı ve genel iletişim bilgileri."
+					>
+						<div className="grid gap-4 md:grid-cols-2">
 							<FormField
 								control={form.control}
 								name="name"
@@ -285,7 +287,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								</FormItem>
 							)}
 						/>
-						<div className="grid gap-5 md:grid-cols-2">
+						<div className="grid gap-4 md:grid-cols-2">
 							<FormField
 								control={form.control}
 								name="websiteUrl"
@@ -315,17 +317,15 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 						</div>
 					</Section>
 
-					<Separator />
-
-					<Section title="İçerik">
+					<Section title="İçerik" hint="Profilin ana metinleri.">
 						<FormField
 							control={form.control}
 							name="problem"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Gündem (Problem)</FormLabel>
+									<FormLabel>Gündem</FormLabel>
 									<FormControl>
-										<Textarea rows={4} {...field} />
+										<Textarea rows={3} placeholder="Hangi soruna çözüm üretiyor?" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -338,7 +338,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								<FormItem>
 									<FormLabel>Çözüm</FormLabel>
 									<FormControl>
-										<Textarea rows={4} {...field} />
+										<Textarea rows={3} placeholder="Bu sorunu nasıl ele alıyor?" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -351,7 +351,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								<FormItem>
 									<FormLabel>Sosyal etki</FormLabel>
 									<FormControl>
-										<Textarea rows={4} {...field} />
+										<Textarea rows={3} placeholder="Şimdiye kadar yarattığı etki." {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -362,20 +362,20 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 							name="longContent"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Uzun içerik (opsiyonel)</FormLabel>
+									<FormLabel className="flex items-center justify-between">
+										Uzun içerik
+										<span className="text-xs font-normal text-muted-foreground">opsiyonel</span>
+									</FormLabel>
 									<FormControl>
-										<Textarea rows={6} {...field} />
+										<Textarea rows={4} placeholder="Detaylı açıklama, hikaye ya da basın metni." {...field} />
 									</FormControl>
-									<FormDescription>Detaylı açıklama, hikaye ya da basın metni.</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
 					</Section>
 
-					<Separator />
-
-					<Section title="Sınıflandırma">
+					<Section title="Sınıflandırma" hint="Filtrelerde ve etiketlerde kullanılır.">
 						<FormField
 							control={form.control}
 							name="categoryIds"
@@ -497,12 +497,10 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 						/>
 					</Section>
 
-					<Separator />
-
-					<Section title="Medya">
-						<p className="-mt-3 text-xs text-muted-foreground">
-							Logo: kart/listelerde küçük ikon. Kapak: detay sayfasının üst görseli.
-						</p>
+					<Section
+						title="Medya"
+						hint="Logo: kart/listelerde küçük ikon. Kapak: detay sayfasının üst görseli."
+					>
 						<div className="flex flex-wrap items-start gap-6">
 							<FormField
 								control={form.control}
@@ -542,29 +540,25 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 							/>
 						</div>
 
-						<div className="flex flex-col gap-3">
-							<div className="flex items-center justify-between gap-2">
-								<div>
-									<FormLabel className="text-base">Galeri</FormLabel>
-									<p className="text-xs text-muted-foreground">
-										Bu girişime ait ek fotoğraflar — public detay sayfasında galeri olarak gösterilir.
-									</p>
-								</div>
+						<div className="flex flex-col gap-3 border-t border-border pt-4">
+							<div>
+								<FormLabel>Galeri</FormLabel>
+								<p className="mt-1 text-xs text-muted-foreground">
+									Detay sayfasında galeri olarak görünür.
+								</p>
 							</div>
 							{mode === 'edit' && enterprise ? (
 								<EnterpriseGallery enterpriseId={enterprise.id} />
 							) : (
-								<div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground">
-									Galeri ekleyebilmek için önce girişimi kaydet. Kaydettikten sonra bu alana fotoğraf yükleyebilirsin.
+								<div className="rounded-lg border border-dashed border-border bg-background/60 px-4 py-5 text-center text-xs text-muted-foreground">
+									Önce girişimi kaydet, sonra bu alanda galeri fotoğrafı ekleyebilirsin.
 								</div>
 							)}
 						</div>
 					</Section>
 
-					<Separator />
-
-					<Section title="Yayın">
-						<div className="grid gap-5 md:grid-cols-2">
+					<Section title="Yayın" hint="Profilin görünürlüğü.">
+						<div className="grid gap-4 md:grid-cols-2">
 							<FormField
 								control={form.control}
 								name="status"
@@ -591,11 +585,11 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								control={form.control}
 								name="isFeatured"
 								render={({ field }) => (
-									<FormItem className="flex flex-row items-center justify-between rounded-xl border border-border p-4">
-										<div className="flex flex-col gap-1">
-											<FormLabel>Öne çıkar</FormLabel>
-											<FormDescription>
-												Anasayfada haftanın girişimleri arasında gösterilir.
+									<FormItem className="flex flex-row items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
+										<div className="flex flex-col">
+											<FormLabel className="leading-none">Öne çıkar</FormLabel>
+											<FormDescription className="text-xs">
+												Anasayfada gösterilir.
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -607,11 +601,11 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 						</div>
 					</Section>
 
-					<div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t border-border bg-background/90 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
-						<Button asChild variant="ghost" type="button">
+					<div className="sticky bottom-0 -mx-4 mt-2 flex items-center justify-end gap-2 border-t border-border bg-background/90 px-4 py-3 backdrop-blur">
+						<Button asChild variant="ghost" type="button" size="sm">
 							<Link to="/admin/enterprises">İptal</Link>
 						</Button>
-						<Button type="submit" disabled={form.formState.isSubmitting}>
+						<Button type="submit" size="sm" disabled={form.formState.isSubmitting}>
 							{form.formState.isSubmitting ? (
 								<>
 									<Loader2Icon className="animate-spin" />
@@ -631,11 +625,22 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 	)
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+	title,
+	hint,
+	children,
+}: {
+	title: string
+	hint?: string
+	children: React.ReactNode
+}) {
 	return (
-		<section className="flex flex-col gap-5">
-			<h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-			<div className="flex flex-col gap-5">{children}</div>
+		<section className="flex flex-col gap-4 rounded-2xl border border-border bg-card/40 p-5">
+			<header className="flex flex-col gap-1">
+				<h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+				{hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+			</header>
+			<div className="flex flex-col gap-4">{children}</div>
 		</section>
 	)
 }
