@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Container } from '@/components/layout/container'
+import { Logomark } from '@/components/logomark'
 
 const navigation = [
 	{ href: '/', label: 'Ana sayfa' },
@@ -18,12 +19,11 @@ export function Header() {
 	return (
 		<header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
 			<Container className="flex items-center justify-between gap-4 py-3.5">
-				<Link to="/" className="flex items-center gap-2 leading-none">
-					<span
-						className="size-2.5 rounded-full bg-primary shadow-[0_0_0_3px_oklch(from_var(--primary)_l_c_h_/_0.18)]"
-						aria-hidden="true"
-					/>
-					<span className="text-base font-semibold tracking-tight">Sosyal Girişimler</span>
+				<Link to="/" className="group flex items-center gap-2 leading-none">
+					<Logomark animated className="size-6" />
+					<span className="text-base font-semibold tracking-tight transition-colors group-hover:text-primary">
+						Sosyal Girişimler
+					</span>
 				</Link>
 				<nav className="hidden items-center gap-1 md:flex">
 					{navigation.map((item) => (

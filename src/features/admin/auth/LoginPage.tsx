@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { getBootstrapStatus, getCurrentAdmin, loginAdmin } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { Logomark } from '@/components/logomark'
 import {
 	Form,
 	FormControl,
@@ -81,9 +82,9 @@ export default function LoginPage() {
 		<div className="flex min-h-screen items-center justify-center bg-background px-4">
 			<div className="w-full max-w-sm space-y-6 rounded-2xl border border-border bg-card p-8 shadow-sm">
 				<div className="space-y-2 text-center">
-					<Link to="/" className="mx-auto flex w-fit items-center gap-2">
-						<span className="size-2.5 rounded-full bg-primary" />
-						<span className="text-sm font-semibold tracking-tight">
+					<Link to="/" className="group mx-auto flex w-fit items-center gap-2">
+						<Logomark animated className="size-5" />
+						<span className="text-sm font-semibold tracking-tight transition-colors group-hover:text-primary">
 							Sosyal Girişimler
 						</span>
 					</Link>

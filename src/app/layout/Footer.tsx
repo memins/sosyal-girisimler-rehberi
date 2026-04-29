@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Container } from '@/components/layout/container'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Logomark } from '@/components/logomark'
 
 const sections = [
 	{
@@ -33,9 +34,9 @@ export function Footer() {
 			<Container className="py-14">
 				<div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
 					<div className="flex flex-col gap-3">
-						<Link to="/" className="flex items-center gap-2">
-							<span className="size-2.5 rounded-full bg-primary" aria-hidden="true" />
-							<span className="text-base font-semibold tracking-tight">
+						<Link to="/" className="group flex items-center gap-2">
+							<Logomark animated className="size-6" />
+							<span className="text-base font-semibold tracking-tight transition-colors group-hover:text-primary">
 								Sosyal Girişimler Rehberi
 							</span>
 						</Link>
