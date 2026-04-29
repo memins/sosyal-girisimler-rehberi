@@ -1135,7 +1135,7 @@ export async function createTaxonomyItem(
 			.prepare(
 				`INSERT INTO ${cfg.table} (${cfg.idColumn}, name, icon, sort_order) VALUES (?, ?, ?, ?)`,
 			)
-			.bind(input.id, input.name.trim(), input.icon ?? null, sortOrder)
+			.bind(input.id, input.name.trim(), input.icon ?? '', sortOrder)
 			.run()
 	} else {
 		await db
@@ -1149,7 +1149,7 @@ export async function createTaxonomyItem(
 	return {
 		id: input.id,
 		name: input.name.trim(),
-		icon: cfg.hasIcon ? (input.icon ?? null) : null,
+		icon: cfg.hasIcon ? (input.icon ?? '') : null,
 		sortOrder,
 		usageCount: 0,
 	}
@@ -1174,7 +1174,7 @@ export async function updateTaxonomyItem(
 	}
 	if (cfg.hasIcon && (typeof patch.icon === 'string' || patch.icon === null)) {
 		updates.push('icon = ?')
-		params.push(patch.icon)
+		params.push(patch.icon ?? '')
 	}
 	if (typeof patch.sortOrder === 'number') {
 		updates.push('sort_order = ?')
