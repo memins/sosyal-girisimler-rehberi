@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+	createContext,
+	useContext,
+	useEffect,
+	useState,
+	type Dispatch,
+	type ReactNode,
+	type SetStateAction,
+} from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { MenuIcon } from 'lucide-react'
 import {
@@ -11,28 +19,33 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 
-interface ActionSlotContextValue {
-	actions: ReactNode
-	setActions: (node: ReactNode) => void
-}
-
-const ActionSlotContext = createContext<ActionSlotContextValue | null>(null)
+// Split the action slot into two contexts so pages that *register* actions
+// don't subscribe to the *value* updates and re-render in a loop.
+// `setActions` from useState is referentially stable, so consumers of the
+// setter context never re-render due to action changes.
+const ActionSetterContext = createContext<Dispatch<SetStateAction<ReactNode>> | null>(null)
+const ActionValueContext = createContext<ReactNode>(null)
 
 export function AdminTopbarProvider({ children }: { children: ReactNode }) {
 	const [actions, setActions] = useState<ReactNode>(null)
 	return (
-		<ActionSlotContext.Provider value={{ actions, setActions }}>
-			{children}
-		</ActionSlotContext.Provider>
+		<ActionSetterContext.Provider value={setActions}>
+			<ActionValueContext.Provider value={actions}>{children}</ActionValueContext.Provider>
+		</ActionSetterContext.Provider>
 	)
 }
 
 export function useTopbarActions(actions: ReactNode) {
-	const ctx = useContext(ActionSlotContext)
+	const setActions = useContext(ActionSetterContext)
 	useEffect(() => {
-		ctx?.setActions(actions)
-		return () => ctx?.setActions(null)
-	}, [actions, ctx])
+		if (!setActions) return
+		setActions(actions)
+		return () => setActions(null)
+	}, [actions, setActions])
+}
+
+function useTopbarActionsValue(): ReactNode {
+	return useContext(ActionValueContext)
 }
 
 interface AdminTopbarProps {
@@ -46,7 +59,7 @@ interface Crumb {
 
 export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
 	const location = useLocation()
-	const ctx = useContext(ActionSlotContext)
+	const actions = useTopbarActionsValue()
 	const crumbs = buildCrumbs(location.pathname)
 
 	return (
@@ -85,7 +98,7 @@ export function AdminTopbar({ onOpenSidebar }: AdminTopbarProps) {
 					</Breadcrumb>
 				)}
 			</div>
-			<div className="flex items-center gap-2">{ctx?.actions}</div>
+			<div className="flex items-center gap-2">{actions}</div>
 		</header>
 	)
 }
