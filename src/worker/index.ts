@@ -533,7 +533,15 @@ function isTaxonomyType(value: string): value is TaxonomyType {
 }
 
 function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : 'İşlem tamamlanamadı.'
+	const raw = error instanceof Error ? error.message : 'İşlem tamamlanamadı.'
+	if (raw.includes('UNIQUE constraint failed')) {
+		if (raw.endsWith('.name')) return 'Bu isim zaten kullanılıyor.'
+		if (raw.endsWith('.id') || raw.endsWith('.code')) {
+			return 'Bu kimlik zaten kullanılıyor.'
+		}
+		return 'Bu kayıt zaten mevcut.'
+	}
+	return raw
 }
 
 function validateAuthCredentials(email: unknown, password: unknown) {
