@@ -19,11 +19,16 @@ export function Header() {
 	return (
 		<header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
 			<Container className="flex items-center justify-between gap-4 py-3.5">
-				<Link to="/" className="group flex items-center gap-2 leading-none">
-					<Logomark animated className="size-6" />
-					<span className="text-base font-semibold tracking-tight transition-colors group-hover:text-primary">
-						Sosyal Girişimler
-					</span>
+				<Link to="/" className="group flex items-center gap-2.5 leading-none">
+					<Logomark animated className="size-7" />
+					<div className="flex flex-col gap-0.5">
+						<span className="text-[15px] font-semibold leading-none tracking-tight transition-colors group-hover:text-primary">
+							Sosyal Girişimler
+						</span>
+						<span className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase">
+							Rehberi
+						</span>
+					</div>
 				</Link>
 				<nav className="hidden items-center gap-1 md:flex">
 					{navigation.map((item) => (

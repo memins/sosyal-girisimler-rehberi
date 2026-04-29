@@ -34,11 +34,16 @@ export function Footer() {
 			<Container className="py-14">
 				<div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
 					<div className="flex flex-col gap-3">
-						<Link to="/" className="group flex items-center gap-2">
-							<Logomark animated className="size-6" />
-							<span className="text-base font-semibold tracking-tight transition-colors group-hover:text-primary">
-								Sosyal Girişimler Rehberi
-							</span>
+						<Link to="/" className="group flex items-center gap-2.5 leading-none">
+							<Logomark animated className="size-8" />
+							<div className="flex flex-col gap-0.5">
+								<span className="text-base font-semibold leading-none tracking-tight transition-colors group-hover:text-primary">
+									Sosyal Girişimler
+								</span>
+								<span className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase">
+									Rehberi
+								</span>
+							</div>
 						</Link>
 						<p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
 							Türkiye ve dünyadan sosyal girişimleri görünür kılan açık, gönüllü
