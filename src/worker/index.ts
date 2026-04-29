@@ -29,16 +29,21 @@ import {
 	validateSubmissionInput,
 } from './request'
 import {
+	addEnterpriseMedia,
 	approveSubmission,
 	createSubmission,
+	deleteEnterpriseMedia,
 	getDirectoryMeta,
 	getEnterpriseById,
 	getEnterpriseDetailBySlug,
 	getHomePayload,
 	listEditorialLists,
+	listEnterpriseGallery,
 	listEnterprises,
 	listSubmissions,
 	rejectSubmission,
+	reorderEnterpriseMedia,
+	updateEnterpriseMedia,
 	upsertEditorialList,
 	upsertEnterprise,
 } from './repository'
@@ -394,6 +399,56 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 
 	if (request.method === 'GET' && pathname === '/api/admin/media') {
 		return listMedia(env)
+	}
+
+	const galleryListMatch = pathname.match(/^\/api\/admin\/enterprises\/([^/]+)\/media$/)
+	if (galleryListMatch) {
+		const enterpriseId = decodeURIComponent(galleryListMatch[1])
+		if (request.method === 'GET') {
+			return json(await listEnterpriseGallery(env.DB, enterpriseId))
+		}
+		if (request.method === 'POST') {
+			const body = (await readJsonBody(request)) as { key?: unknown; caption?: unknown }
+			if (typeof body.key !== 'string' || body.key.length === 0) {
+				return apiError('bad_request', 'media key gerekli.', 400)
+			}
+			const item = await addEnterpriseMedia(env.DB, enterpriseId, {
+				key: body.key,
+				caption: typeof body.caption === 'string' ? body.caption : undefined,
+			})
+			await env.CACHE.delete('home:v1')
+			return json(item, { status: 201 })
+		}
+		if (request.method === 'PATCH') {
+			const body = (await readJsonBody(request)) as { keys?: unknown }
+			if (!Array.isArray(body.keys) || !body.keys.every((k) => typeof k === 'string')) {
+				return apiError('bad_request', 'keys liste olmalı.', 400)
+			}
+			await reorderEnterpriseMedia(env.DB, enterpriseId, body.keys as Array<string>)
+			await env.CACHE.delete('home:v1')
+			return json({ ok: true })
+		}
+	}
+
+	const galleryItemMatch = pathname.match(
+		/^\/api\/admin\/enterprises\/([^/]+)\/media\/(.+)$/,
+	)
+	if (galleryItemMatch) {
+		const enterpriseId = decodeURIComponent(galleryItemMatch[1])
+		const mediaKey = decodeURIComponent(galleryItemMatch[2])
+		if (request.method === 'PATCH') {
+			const body = (await readJsonBody(request)) as { caption?: unknown }
+			await updateEnterpriseMedia(env.DB, enterpriseId, mediaKey, {
+				caption: typeof body.caption === 'string' ? body.caption : null,
+			})
+			await env.CACHE.delete('home:v1')
+			return json({ ok: true })
+		}
+		if (request.method === 'DELETE') {
+			await deleteEnterpriseMedia(env.DB, enterpriseId, mediaKey)
+			await env.CACHE.delete('home:v1')
+			return json({ ok: true })
+		}
 	}
 
 	return apiError('not_found', 'Admin API rotası bulunamadı.', 404)

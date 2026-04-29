@@ -33,6 +33,7 @@ import {
 	enterpriseFormSchema,
 	type EnterpriseFormValues,
 } from '@/features/admin/schemas/enterprise'
+import { EnterpriseGallery } from './EnterpriseGallery'
 import { getAdminEnterprise, getDirectoryMeta, saveEnterprise } from '@/lib/api'
 import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
@@ -153,7 +154,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 	async function onSubmit(values: EnterpriseFormValues) {
 		try {
 			const parsed = enterpriseFormSchema.parse(values)
-			await saveEnterprise({
+			const saved = await saveEnterprise({
 				id: parsed.id,
 				name: parsed.name,
 				slug: parsed.slug,
@@ -175,7 +176,11 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 				sdgIds: parsed.sdgIds,
 			})
 			toast.success('Girişim kaydedildi.')
-			navigate('/admin/enterprises')
+			if (mode === 'create') {
+				navigate(`/admin/enterprises/${saved.id}/edit`)
+			} else {
+				navigate('/admin/enterprises')
+			}
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Kaydedilemedi.')
 		}
@@ -502,6 +507,24 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 									</FormItem>
 								)}
 							/>
+						</div>
+
+						<div className="flex flex-col gap-3">
+							<div className="flex items-center justify-between gap-2">
+								<div>
+									<FormLabel className="text-base">Galeri</FormLabel>
+									<p className="text-xs text-muted-foreground">
+										Bu girişime ait ek fotoğraflar — public detay sayfasında galeri olarak gösterilir.
+									</p>
+								</div>
+							</div>
+							{mode === 'edit' && enterprise ? (
+								<EnterpriseGallery enterpriseId={enterprise.id} />
+							) : (
+								<div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground">
+									Galeri ekleyebilmek için önce girişimi kaydet. Kaydettikten sonra bu alana fotoğraf yükleyebilirsin.
+								</div>
+							)}
 						</div>
 					</Section>
 

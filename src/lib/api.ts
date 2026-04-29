@@ -18,7 +18,7 @@ import type {
 	UpsertEnterpriseInput,
 } from '@/shared/types'
 
-import type { AdminMediaObject } from '@/shared/types'
+import type { AdminMediaObject, EnterpriseMediaItem } from '@/shared/types'
 
 type AdminSummary = {
 	enterprises: number
@@ -113,6 +113,48 @@ export async function rejectSubmission(id: string, reason?: string): Promise<Sub
 
 export async function listAdminMedia(): Promise<Array<AdminMediaObject>> {
 	return apiGet('/api/admin/media')
+}
+
+export async function listEnterpriseGallery(
+	enterpriseId: string,
+): Promise<Array<EnterpriseMediaItem>> {
+	return apiGet(`/api/admin/enterprises/${encodeURIComponent(enterpriseId)}/media`)
+}
+
+export async function addEnterpriseGalleryItem(
+	enterpriseId: string,
+	body: { key: string; caption?: string },
+): Promise<EnterpriseMediaItem> {
+	return apiPost(`/api/admin/enterprises/${encodeURIComponent(enterpriseId)}/media`, body)
+}
+
+export async function updateEnterpriseGalleryItem(
+	enterpriseId: string,
+	mediaKey: string,
+	body: { caption?: string | null },
+): Promise<{ ok: true }> {
+	return apiPatch(
+		`/api/admin/enterprises/${encodeURIComponent(enterpriseId)}/media/${encodeURIComponent(mediaKey)}`,
+		body,
+	)
+}
+
+export async function reorderEnterpriseGallery(
+	enterpriseId: string,
+	keys: Array<string>,
+): Promise<{ ok: true }> {
+	return apiPatch(`/api/admin/enterprises/${encodeURIComponent(enterpriseId)}/media`, { keys })
+}
+
+export async function deleteEnterpriseGalleryItem(
+	enterpriseId: string,
+	mediaKey: string,
+): Promise<{ ok: true }> {
+	const response = await fetch(
+		`/api/admin/enterprises/${encodeURIComponent(enterpriseId)}/media/${encodeURIComponent(mediaKey)}`,
+		{ method: 'DELETE', credentials: 'include' },
+	)
+	return parseResponse(response)
 }
 
 export async function listAdminEditorialLists(): Promise<Array<EditorialList>> {

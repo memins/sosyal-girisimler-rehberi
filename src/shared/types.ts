@@ -45,6 +45,12 @@ export type BootstrapStatus = {
 	ownerEmail: string
 }
 
+export type EnterpriseMediaItem = {
+	key: string
+	caption: string | null
+	sortOrder: number
+}
+
 export type Enterprise = {
 	id: string
 	slug: string
@@ -65,6 +71,7 @@ export type Enterprise = {
 	businessModels: Array<TaxonomyItem>
 	countries: Array<Country>
 	sdgs: Array<Sdg>
+	gallery: Array<EnterpriseMediaItem>
 	createdAt: string
 	updatedAt: string
 }

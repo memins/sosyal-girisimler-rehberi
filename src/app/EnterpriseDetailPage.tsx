@@ -207,6 +207,42 @@ export function EnterpriseDetailPage() {
 				</aside>
 			</div>
 
+			{enterprise.gallery && enterprise.gallery.length > 0 && (
+				<section className="flex flex-col gap-6">
+					<div className="flex flex-col gap-2">
+						<span className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+							Galeri
+						</span>
+						<h2 className="text-2xl font-semibold tracking-tight">
+							Çalışmalarından kareler
+						</h2>
+					</div>
+					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						{enterprise.gallery.map((item) => (
+							<figure
+								key={item.key}
+								className="flex flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card"
+							>
+								<div className="aspect-[4/3] overflow-hidden bg-secondary">
+									<img
+										src={`/api/media/${item.key}`}
+										alt={item.caption ?? enterprise.name}
+										className="size-full object-cover transition duration-500 hover:scale-105"
+										loading="lazy"
+										decoding="async"
+									/>
+								</div>
+								{item.caption && (
+									<figcaption className="px-3 pb-3 text-xs leading-relaxed text-muted-foreground">
+										{item.caption}
+									</figcaption>
+								)}
+							</figure>
+						))}
+					</div>
+				</section>
+			)}
+
 			{enterprise.related.length > 0 && (
 				<section className="flex flex-col gap-6">
 					<div className="flex items-end justify-between">

@@ -83,6 +83,17 @@ CREATE TABLE IF NOT EXISTS enterprise_sdgs (
 	PRIMARY KEY (enterprise_id, sdg_id)
 );
 
+CREATE TABLE IF NOT EXISTS enterprise_media (
+	enterprise_id TEXT NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
+	media_key TEXT NOT NULL,
+	caption TEXT,
+	sort_order INTEGER NOT NULL DEFAULT 0,
+	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (enterprise_id, media_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_enterprise_media_enterprise ON enterprise_media(enterprise_id, sort_order);
+
 CREATE TABLE IF NOT EXISTS submissions (
 	id TEXT PRIMARY KEY,
 	name TEXT NOT NULL,

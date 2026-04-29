@@ -6,6 +6,7 @@ import type {
 	EditorialListStatus,
 	Enterprise,
 	EnterpriseDetail,
+	EnterpriseMediaItem,
 	EnterpriseStatus,
 	EnterpriseSummary,
 	HomePayload,
@@ -101,6 +102,14 @@ type RelationRows = {
 	businessModels: Map<string, Array<TaxonomyItem>>
 	countries: Map<string, Array<Country>>
 	sdgs: Map<string, Array<Sdg>>
+	gallery: Map<string, Array<EnterpriseMediaItem>>
+}
+
+type EnterpriseMediaRow = {
+	enterprise_id: string
+	media_key: string
+	caption: string | null
+	sort_order: number
 }
 
 export async function getDirectoryMeta(db: D1Database): Promise<DirectoryMeta> {
@@ -648,8 +657,17 @@ function mapEnterpriseRow(row: EnterpriseRow, relations: RelationRows): Enterpri
 		businessModels: relations.businessModels.get(row.id) ?? [],
 		countries: relations.countries.get(row.id) ?? [],
 		sdgs: relations.sdgs.get(row.id) ?? [],
+		gallery: relations.gallery.get(row.id) ?? [],
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
+	}
+}
+
+function mapEnterpriseMediaRow(row: EnterpriseMediaRow): EnterpriseMediaItem {
+	return {
+		key: row.media_key,
+		caption: row.caption,
+		sortOrder: row.sort_order,
 	}
 }
 
@@ -659,7 +677,7 @@ async function loadRelations(db: D1Database, enterpriseIds: Array<string>): Prom
 	}
 
 	const placeholders = enterpriseIds.map(() => '?').join(', ')
-	const [categories, audiences, businessModels, countries, sdgs] = await Promise.all([
+	const [categories, audiences, businessModels, countries, sdgs, gallery] = await Promise.all([
 		db
 			.prepare(
 				`SELECT ec.enterprise_id, c.id, c.name, c.icon, c.sort_order
@@ -710,6 +728,15 @@ async function loadRelations(db: D1Database, enterpriseIds: Array<string>): Prom
 			)
 			.bind(...enterpriseIds)
 			.all<SdgRow & { enterprise_id: string }>(),
+		db
+			.prepare(
+				`SELECT enterprise_id, media_key, caption, sort_order
+					FROM enterprise_media
+					WHERE enterprise_id IN (${placeholders})
+					ORDER BY sort_order, created_at`,
+			)
+			.bind(...enterpriseIds)
+			.all<EnterpriseMediaRow>(),
 	])
 
 	return {
@@ -718,6 +745,7 @@ async function loadRelations(db: D1Database, enterpriseIds: Array<string>): Prom
 		businessModels: groupByEnterprise(businessModels.results, mapBusinessModelRow),
 		countries: groupByEnterprise(countries.results, mapCountryRow),
 		sdgs: groupByEnterprise(sdgs.results, mapSdgRow),
+		gallery: groupByEnterprise(gallery.results, mapEnterpriseMediaRow),
 	}
 }
 
@@ -728,7 +756,88 @@ function emptyRelations(): RelationRows {
 		businessModels: new Map(),
 		countries: new Map(),
 		sdgs: new Map(),
+		gallery: new Map(),
 	}
+}
+
+export async function listEnterpriseGallery(
+	db: D1Database,
+	enterpriseId: string,
+): Promise<Array<EnterpriseMediaItem>> {
+	const rows = await db
+		.prepare(
+			`SELECT enterprise_id, media_key, caption, sort_order
+				FROM enterprise_media WHERE enterprise_id = ?
+				ORDER BY sort_order, created_at`,
+		)
+		.bind(enterpriseId)
+		.all<EnterpriseMediaRow>()
+	return rows.results.map(mapEnterpriseMediaRow)
+}
+
+export async function addEnterpriseMedia(
+	db: D1Database,
+	enterpriseId: string,
+	input: { key: string; caption?: string },
+): Promise<EnterpriseMediaItem> {
+	const existing = await db
+		.prepare('SELECT COUNT(*) as count FROM enterprise_media WHERE enterprise_id = ?')
+		.bind(enterpriseId)
+		.first<CountRow>()
+	const sortOrder = existing?.count ?? 0
+
+	await db
+		.prepare(
+			`INSERT INTO enterprise_media (enterprise_id, media_key, caption, sort_order)
+				VALUES (?, ?, ?, ?)
+				ON CONFLICT(enterprise_id, media_key) DO UPDATE SET
+					caption = excluded.caption`,
+		)
+		.bind(enterpriseId, input.key, input.caption ?? null, sortOrder)
+		.run()
+
+	return { key: input.key, caption: input.caption ?? null, sortOrder }
+}
+
+export async function updateEnterpriseMedia(
+	db: D1Database,
+	enterpriseId: string,
+	mediaKey: string,
+	patch: { caption?: string | null },
+): Promise<void> {
+	await db
+		.prepare(
+			`UPDATE enterprise_media SET caption = ? WHERE enterprise_id = ? AND media_key = ?`,
+		)
+		.bind(patch.caption ?? null, enterpriseId, mediaKey)
+		.run()
+}
+
+export async function deleteEnterpriseMedia(
+	db: D1Database,
+	enterpriseId: string,
+	mediaKey: string,
+): Promise<void> {
+	await db
+		.prepare('DELETE FROM enterprise_media WHERE enterprise_id = ? AND media_key = ?')
+		.bind(enterpriseId, mediaKey)
+		.run()
+}
+
+export async function reorderEnterpriseMedia(
+	db: D1Database,
+	enterpriseId: string,
+	keys: Array<string>,
+): Promise<void> {
+	if (keys.length === 0) return
+	const statements = keys.map((key, index) =>
+		db
+			.prepare(
+				'UPDATE enterprise_media SET sort_order = ? WHERE enterprise_id = ? AND media_key = ?',
+			)
+			.bind(index, enterpriseId, key),
+	)
+	await db.batch(statements)
 }
 
 function groupByEnterprise<Row extends { enterprise_id: string }, Value>(
