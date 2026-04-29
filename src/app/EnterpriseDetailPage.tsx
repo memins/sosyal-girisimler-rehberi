@@ -1,52 +1,113 @@
-import { ExternalLinkIcon, HeartIcon, Share2Icon } from 'lucide-react'
+import {
+	AlertCircleIcon,
+	AtSignIcon,
+	ExternalLinkIcon,
+	HeartIcon,
+	LightbulbIcon,
+	LinkIcon,
+	Share2Icon,
+	SparklesIcon,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { getEnterprise } from '@/lib/api'
-import type { Enterprise } from '@/shared/types'
+import type { EnterpriseDetail } from '@/shared/types'
 import { Badge } from '@/components/ui/badge'
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
-import { ErrorBlock, LoadingGrid } from '@/components/StateBlock'
+import { ErrorBlock, RouteFallback } from '@/components/StateBlock'
+import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
+
+const SAVED_KEY = 'sgr:saved'
 
 export function EnterpriseDetailPage() {
 	const { slug } = useParams()
-	const [enterprise, setEnterprise] = useState<Enterprise | null>(null)
+	const [enterprise, setEnterprise] = useState<EnterpriseDetail | null>(null)
 	const [error, setError] = useState<string | null>(null)
+	const [saved, setSaved] = useState(false)
 
 	useEffect(() => {
-		if (!slug) {
-			return
-		}
-
+		if (!slug) return
+		setEnterprise(null)
+		setError(null)
 		getEnterprise(slug)
 			.then(setEnterprise)
-			.catch((currentError: Error) => setError(currentError.message))
+			.catch((err: Error) => setError(err.message))
 	}, [slug])
 
-	if (error) {
-		return <ErrorBlock message={error} />
+	useEffect(() => {
+		if (!slug) return
+		setSaved(readSaved().includes(slug))
+	}, [slug])
+
+	function toggleSaved() {
+		if (!slug) return
+		const list = readSaved()
+		const next = list.includes(slug) ? list.filter((s) => s !== slug) : [...list, slug]
+		localStorage.setItem(SAVED_KEY, JSON.stringify(next))
+		setSaved(next.includes(slug))
+		toast.success(next.includes(slug) ? 'Kaydedilenlere eklendi' : 'Kaydedilenlerden çıkarıldı')
 	}
 
-	if (!slug) {
-		return <ErrorBlock message="Girişim adresi eksik." />
+	async function copyLink() {
+		try {
+			await navigator.clipboard.writeText(window.location.href)
+			toast.success('Bağlantı kopyalandı')
+		} catch {
+			toast.error('Bağlantı kopyalanamadı')
+		}
 	}
 
-	if (!enterprise) {
-		return <LoadingGrid />
-	}
+	if (error) return <ErrorBlock message={error} />
+	if (!slug) return <ErrorBlock message="Girişim adresi eksik." />
+	if (!enterprise) return <RouteFallback />
+
+	const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
+	const shareText = `${enterprise.name} — ${enterprise.shortDescription}`
 
 	return (
-		<article className="mx-auto flex max-w-5xl flex-col gap-10">
-			<header className="flex flex-col gap-6 rounded-[2rem] bg-card p-6 md:p-10">
-				<Link to="/arama" className="text-sm text-muted-foreground hover:text-foreground">
-					← Rehbere dön
-				</Link>
+		<article className="flex flex-col gap-16">
+			<header className="flex flex-col gap-6">
+				<Breadcrumb>
+					<BreadcrumbList>
+						<BreadcrumbItem>
+							<BreadcrumbLink asChild>
+								<Link to="/">Ana sayfa</Link>
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbLink asChild>
+								<Link to="/arama">Rehber</Link>
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbPage>{enterprise.name}</BreadcrumbPage>
+						</BreadcrumbItem>
+					</BreadcrumbList>
+				</Breadcrumb>
+
 				<div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-wrap gap-2">
 							{enterprise.countries.map((country) => (
-								<Badge key={country.code} variant="secondary">
+								<Badge key={country.code} variant="secondary" className="gap-1.5">
 									<span aria-hidden="true">{country.flag}</span>
 									{country.name}
 								</Badge>
@@ -57,95 +118,256 @@ export function EnterpriseDetailPage() {
 								</Badge>
 							))}
 						</div>
-						<h1 className="text-4xl font-semibold tracking-tight md:text-6xl">{enterprise.name}</h1>
-						<p className="max-w-3xl text-lg leading-8 text-muted-foreground">
+						<h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
+							{enterprise.name}
+						</h1>
+						<p className="max-w-3xl text-lg leading-relaxed text-muted-foreground">
 							{enterprise.shortDescription}
 						</p>
 					</div>
-					<div className="flex gap-2">
-						<Button variant="outline">
-							<HeartIcon data-icon="inline-start" />
-							Kaydet
+					<div className="flex flex-wrap gap-2">
+						<Button variant={saved ? 'default' : 'outline'} onClick={toggleSaved}>
+							<HeartIcon className={saved ? 'fill-current' : ''} />
+							{saved ? 'Kaydedildi' : 'Kaydet'}
 						</Button>
-						<Button variant="outline">
-							<Share2Icon data-icon="inline-start" />
-							Paylaş
-						</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="outline">
+									<Share2Icon />
+									Paylaş
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem onClick={copyLink}>
+									<LinkIcon className="size-4" />
+									Bağlantıyı kopyala
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
+										target="_blank"
+										rel="noreferrer"
+									>
+										WhatsApp
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
+										target="_blank"
+										rel="noreferrer"
+									>
+										X (Twitter)
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+										target="_blank"
+										rel="noreferrer"
+									>
+										LinkedIn
+									</a>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</div>
 			</header>
 
-			<div className="grid gap-6 md:grid-cols-3">
-				<DetailCard title="Gündem" content={enterprise.problem} />
-				<DetailCard title="Çözüm" content={enterprise.solution} />
-				<DetailCard title="Sosyal etki" content={enterprise.impact} />
+			<div className="grid gap-12 md:grid-cols-[minmax(0,1fr)_320px]">
+				<div className="flex flex-col gap-12">
+					<DetailSection
+						accent="bg-destructive/15 text-destructive"
+						icon={AlertCircleIcon}
+						title="Gündem"
+						body={enterprise.problem}
+					/>
+					<DetailSection
+						accent="bg-warning/20 text-warning"
+						icon={LightbulbIcon}
+						title="Çözüm"
+						body={enterprise.solution}
+					/>
+					<DetailSection
+						accent="bg-primary/15 text-primary"
+						icon={SparklesIcon}
+						title="Sosyal etki"
+						body={enterprise.impact}
+					/>
+					{enterprise.longContent && (
+						<section className="prose prose-neutral max-w-none dark:prose-invert">
+							<p>{enterprise.longContent}</p>
+						</section>
+					)}
+				</div>
+
+				<aside className="md:sticky md:top-24 md:max-h-[calc(100vh-7rem)] md:self-start md:overflow-y-auto">
+					<EnterpriseFactsCard enterprise={enterprise} />
+				</aside>
 			</div>
 
-			{enterprise.longContent ? (
-				<section className="prose prose-neutral max-w-none rounded-2xl bg-card p-6 text-foreground">
-					<p>{enterprise.longContent}</p>
-				</section>
-			) : null}
-
-			<section className="grid gap-6 md:grid-cols-[1fr_320px]">
-				<Card>
-					<CardHeader>
-						<CardTitle>BM Sürdürülebilir Kalkınma Amaçları</CardTitle>
-					</CardHeader>
-					<CardContent className="flex flex-wrap gap-3">
-						{enterprise.sdgs.map((sdg) => (
-							<Badge key={sdg.id} variant="secondary" className="px-3 py-2">
-								{sdg.id}. {sdg.name}
-							</Badge>
+			{enterprise.related.length > 0 && (
+				<section className="flex flex-col gap-6">
+					<div className="flex items-end justify-between">
+						<div className="flex flex-col gap-2">
+							<span className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+								Benzer girişimler
+							</span>
+							<h2 className="text-2xl font-semibold tracking-tight">
+								Aynı alandan keşfetmeye devam et
+							</h2>
+						</div>
+						<Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+							<Link to="/arama">Rehbere dön</Link>
+						</Button>
+					</div>
+					<div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+						{enterprise.related.map((related) => (
+							<EnterpriseCard key={related.id} enterprise={related} />
 						))}
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader>
-						<CardTitle>İrtibat</CardTitle>
-					</CardHeader>
-					<CardContent className="flex flex-col gap-3">
-						{enterprise.websiteUrl ? (
-							<Button asChild variant="outline" className="justify-start">
-								<a href={enterprise.websiteUrl} target="_blank" rel="noreferrer">
-									<ExternalLinkIcon data-icon="inline-start" />
-									Web sitesi
-								</a>
-							</Button>
-						) : null}
-						{enterprise.instagramUrl ? (
-							<Button asChild variant="outline" className="justify-start">
-								<a href={enterprise.instagramUrl} target="_blank" rel="noreferrer">
-									<ExternalLinkIcon data-icon="inline-start" />
-									Instagram
-								</a>
-							</Button>
-						) : null}
-						<Separator />
-						<p className="text-sm text-muted-foreground">
-							Bu profilde eksik veya hatalı bilgi görürseniz geri bildirim gönderebilirsiniz.
-						</p>
-					</CardContent>
-				</Card>
-			</section>
+					</div>
+				</section>
+			)}
 		</article>
 	)
 }
 
-type DetailCardProps = {
+interface DetailSectionProps {
+	accent: string
+	icon: typeof AlertCircleIcon
 	title: string
-	content: string
+	body: string
 }
 
-function DetailCard({ title, content }: DetailCardProps) {
+function DetailSection({ accent, icon: Icon, title, body }: DetailSectionProps) {
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>{title}</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<p className="leading-7 text-muted-foreground">{content}</p>
-			</CardContent>
-		</Card>
+		<section className="flex flex-col gap-4">
+			<div className="flex items-center gap-3">
+				<span
+					className={`inline-flex size-10 items-center justify-center rounded-full ${accent}`}
+					aria-hidden="true"
+				>
+					<Icon className="size-5" />
+				</span>
+				<h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+			</div>
+			<p className="max-w-2xl text-base leading-relaxed text-foreground/85">{body}</p>
+		</section>
 	)
+}
+
+function EnterpriseFactsCard({ enterprise }: { enterprise: EnterpriseDetail }) {
+	return (
+		<div className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
+			{(enterprise.websiteUrl || enterprise.instagramUrl) && (
+				<div className="flex flex-col gap-2">
+					{enterprise.websiteUrl && (
+						<Button asChild variant="outline" className="justify-start" size="sm">
+							<a href={enterprise.websiteUrl} target="_blank" rel="noreferrer">
+								<ExternalLinkIcon />
+								Web sitesi
+							</a>
+						</Button>
+					)}
+					{enterprise.instagramUrl && (
+						<Button asChild variant="outline" className="justify-start" size="sm">
+							<a href={enterprise.instagramUrl} target="_blank" rel="noreferrer">
+								<AtSignIcon />
+								Instagram
+							</a>
+						</Button>
+					)}
+				</div>
+			)}
+
+			<FactGroup label="Ülkeler">
+				<div className="flex flex-wrap gap-1.5">
+					{enterprise.countries.length > 0 ? (
+						enterprise.countries.map((country) => (
+							<Badge key={country.code} variant="secondary" className="gap-1">
+								<span aria-hidden="true">{country.flag}</span>
+								{country.name}
+							</Badge>
+						))
+					) : (
+						<span className="text-sm text-muted-foreground">—</span>
+					)}
+				</div>
+			</FactGroup>
+
+			<FactGroup label="Alanlar">
+				<div className="flex flex-wrap gap-1.5">
+					{enterprise.categories.map((category) => (
+						<Badge key={category.id} variant="outline">
+							{category.name}
+						</Badge>
+					))}
+				</div>
+			</FactGroup>
+
+			{enterprise.businessModels.length > 0 && (
+				<FactGroup label="İş modeli">
+					<div className="flex flex-wrap gap-1.5">
+						{enterprise.businessModels.map((model) => (
+							<Badge key={model.id} variant="outline">
+								{model.name}
+							</Badge>
+						))}
+					</div>
+				</FactGroup>
+			)}
+
+			{enterprise.sdgs.length > 0 && (
+				<FactGroup label="SKA uyumu">
+					<div className="flex flex-wrap gap-1.5">
+						{enterprise.sdgs.map((sdg) => (
+							<span
+								key={sdg.id}
+								className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-1 text-xs"
+								title={sdg.name}
+							>
+								<span
+									className="inline-block size-2 rounded-full"
+									style={{ background: sdg.color }}
+									aria-hidden="true"
+								/>
+								<span className="font-medium">{sdg.id}</span>
+								<span className="text-muted-foreground">{sdg.name}</span>
+							</span>
+						))}
+					</div>
+				</FactGroup>
+			)}
+
+			<Separator />
+			<p className="text-xs leading-relaxed text-muted-foreground">
+				Bu profilde eksik ya da hatalı bilgi gördüysen geri bildirim göndermek için
+				bize ulaş.
+			</p>
+		</div>
+	)
+}
+
+function FactGroup({ label, children }: { label: string; children: React.ReactNode }) {
+	return (
+		<div className="flex flex-col gap-2">
+			<span className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+				{label}
+			</span>
+			{children}
+		</div>
+	)
+}
+
+function readSaved(): Array<string> {
+	if (typeof window === 'undefined') return []
+	try {
+		const value = localStorage.getItem(SAVED_KEY)
+		if (!value) return []
+		const parsed = JSON.parse(value)
+		return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : []
+	} catch {
+		return []
+	}
 }

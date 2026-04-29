@@ -84,6 +84,10 @@ export type EnterpriseSummary = Pick<
 	| 'sdgs'
 >
 
+export type EnterpriseDetail = Enterprise & {
+	related: Array<EnterpriseSummary>
+}
+
 export type Submission = {
 	id: string
 	name: string
@@ -94,8 +98,16 @@ export type Submission = {
 	solution: string | null
 	status: SubmissionStatus
 	enterpriseId: string | null
+	rejectionReason: string | null
 	createdAt: string
 	updatedAt: string
+}
+
+export type AdminMediaObject = {
+	key: string
+	size: number
+	uploaded: string
+	contentType: string | null
 }
 
 export type EditorialList = {
@@ -124,16 +136,25 @@ export type SiteStats = {
 	sdgs: number
 }
 
+export type CategoryWithCount = TaxonomyItem & {
+	enterpriseCount: number
+}
+
 export type HomePayload = {
 	stats: SiteStats
 	featured: Array<EnterpriseSummary>
-	categories: Array<TaxonomyItem>
+	categories: Array<CategoryWithCount>
 	editorialLists: Array<EditorialList>
 }
+
+export type EnterpriseSort = 'featured' | 'newest' | 'name'
 
 export type ListEnterprisesPayload = {
 	items: Array<EnterpriseSummary>
 	total: number
+	page: number
+	pageSize: number
+	sort: EnterpriseSort
 }
 
 export type SubmissionInput = {

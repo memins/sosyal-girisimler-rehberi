@@ -1,84 +1,130 @@
-import { MenuIcon } from 'lucide-react'
-import { Link, NavLink, Route, Routes } from 'react-router-dom'
-import { Toaster } from '@/components/ui/sonner'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { AboutPage } from './AboutPage'
-import { EnterpriseDetailPage } from './EnterpriseDetailPage'
-import { HomePage } from './HomePage'
-import { SearchPage } from './SearchPage'
-import { SubmissionPage } from './SubmissionPage'
-import { AdminPage } from '@/features/admin/AdminPage'
+import { lazy } from 'react'
+import { Route, Routes } from 'react-router-dom'
+import { ErrorBoundary } from './ErrorBoundary'
+import { SiteShell } from './layout/SiteShell'
 
-const navigation = [
-	{ href: '/', label: 'Ana sayfa' },
-	{ href: '/arama', label: 'Arama' },
-	{ href: '/girisim-ekle', label: 'Girişim ekle' },
-	{ href: '/hakkimizda', label: 'Hakkımızda' },
-]
+const HomePage = lazy(() => import('./HomePage').then((m) => ({ default: m.HomePage })))
+const SearchPage = lazy(() => import('./SearchPage').then((m) => ({ default: m.SearchPage })))
+const EnterpriseDetailPage = lazy(() =>
+	import('./EnterpriseDetailPage').then((m) => ({ default: m.EnterpriseDetailPage })),
+)
+const SubmissionPage = lazy(() =>
+	import('./SubmissionPage').then((m) => ({ default: m.SubmissionPage })),
+)
+const AboutPage = lazy(() => import('./AboutPage').then((m) => ({ default: m.AboutPage })))
+const LegalPage = lazy(() => import('./LegalPage'))
+const NotFoundPage = lazy(() => import('./NotFoundPage'))
+
+const AdminShell = lazy(() =>
+	import('@/features/admin/layout/AdminShell').then((m) => ({ default: m.AdminShell })),
+)
+const LoginPage = lazy(() => import('@/features/admin/auth/LoginPage'))
+const SetupPage = lazy(() => import('@/features/admin/auth/SetupPage'))
+const DashboardPage = lazy(() => import('@/features/admin/dashboard/DashboardPage'))
+const EnterprisesListPage = lazy(() =>
+	import('@/features/admin/enterprises/EnterprisesListPage').then((m) => ({
+		default: m.EnterprisesListPage,
+	})),
+)
+const EnterpriseFormPage = lazy(() =>
+	import('@/features/admin/enterprises/EnterpriseFormPage').then((m) => ({
+		default: m.EnterpriseFormPage,
+	})),
+)
+const SubmissionsListPage = lazy(() =>
+	import('@/features/admin/submissions/SubmissionsListPage').then((m) => ({
+		default: m.SubmissionsListPage,
+	})),
+)
+const EditorialListPage = lazy(() =>
+	import('@/features/admin/editorial/EditorialListPage').then((m) => ({
+		default: m.EditorialListPage,
+	})),
+)
+const EditorialFormPage = lazy(() =>
+	import('@/features/admin/editorial/EditorialFormPage').then((m) => ({
+		default: m.EditorialFormPage,
+	})),
+)
+const UsersListPage = lazy(() =>
+	import('@/features/admin/users/UsersListPage').then((m) => ({ default: m.UsersListPage })),
+)
+const MediaLibraryPage = lazy(() =>
+	import('@/features/admin/media/MediaLibraryPage').then((m) => ({
+		default: m.MediaLibraryPage,
+	})),
+)
 
 export function App() {
 	return (
-		<>
-			<div className="min-h-screen bg-background">
-				<header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-					<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-						<Link to="/" className="flex flex-col leading-none">
-							<span className="text-lg font-semibold">Sosyal Girişimler</span>
-							<span className="text-xs text-muted-foreground">Rehberi</span>
-						</Link>
-						<nav className="hidden items-center gap-1 md:flex">
-							{navigation.map((item) => (
-								<NavLink
-									key={item.href}
-									to={item.href}
-									className={({ isActive }) =>
-										`rounded-full px-4 py-2 text-sm transition ${isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`
-									}
-								>
-									{item.label}
-								</NavLink>
-							))}
-							<Button asChild variant="outline">
-								<Link to="/admin">Admin</Link>
-							</Button>
-						</nav>
-						<Sheet>
-							<SheetTrigger asChild>
-								<Button variant="outline" size="icon" className="md:hidden" aria-label="Menüyü aç">
-									<MenuIcon />
-								</Button>
-							</SheetTrigger>
-							<SheetContent>
-								<SheetHeader>
-									<SheetTitle>Menü</SheetTitle>
-								</SheetHeader>
-								<nav className="mt-8 flex flex-col gap-2">
-									{navigation.map((item) => (
-										<Button key={item.href} asChild variant="ghost" className="justify-start">
-											<Link to={item.href}>{item.label}</Link>
-										</Button>
-									))}
-									<Button asChild variant="outline" className="justify-start">
-										<Link to="/admin">Admin</Link>
-									</Button>
-								</nav>
-							</SheetContent>
-						</Sheet>
-					</div>
-				</header>
-				<main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
-					<Routes>
-						<Route path="/" element={<HomePage />} />
-						<Route path="/arama" element={<SearchPage />} />
-						<Route path="/girisimler/:slug" element={<EnterpriseDetailPage />} />
-						<Route path="/girisim-ekle" element={<SubmissionPage />} />
-						<Route path="/hakkimizda" element={<AboutPage />} />
-						<Route path="/admin" element={<AdminPage />} />
-					</Routes>
-				</main>
-			</div>
-			<Toaster richColors position="top-right" />
-		</>
+		<ErrorBoundary>
+			<Routes>
+				<Route element={<SiteShell />}>
+					<Route path="/" element={<HomePage />} />
+					<Route path="/arama" element={<SearchPage />} />
+					<Route path="/girisimler/:slug" element={<EnterpriseDetailPage />} />
+					<Route path="/girisim-ekle" element={<SubmissionPage />} />
+					<Route path="/hakkimizda" element={<AboutPage />} />
+					<Route path="/gizlilik" element={<LegalPage kind="privacy" />} />
+					<Route path="/kosullar" element={<LegalPage kind="terms" />} />
+					<Route path="/iletisim" element={<LegalPage kind="contact" />} />
+					<Route path="*" element={<NotFoundPage />} />
+				</Route>
+				<Route path="/admin/login" element={<LoginPage />} />
+				<Route path="/admin/setup" element={<SetupPage />} />
+				<Route path="/admin" element={<AdminShell />}>
+					<Route
+						index
+						element={<DashboardPage />}
+						handle={{ crumb: 'Panel' }}
+					/>
+					<Route
+						path="enterprises"
+						element={<EnterprisesListPage />}
+						handle={{ crumb: 'Girişimler' }}
+					/>
+					<Route
+						path="enterprises/new"
+						element={<EnterpriseFormPage mode="create" />}
+						handle={{ crumb: 'Yeni girişim' }}
+					/>
+					<Route
+						path="enterprises/:id/edit"
+						element={<EnterpriseFormPage mode="edit" />}
+						handle={{ crumb: 'Düzenle' }}
+					/>
+					<Route
+						path="submissions"
+						element={<SubmissionsListPage />}
+						handle={{ crumb: 'Öneriler' }}
+					/>
+					<Route
+						path="editorial-lists"
+						element={<EditorialListPage />}
+						handle={{ crumb: 'Editöryel listeler' }}
+					/>
+					<Route
+						path="editorial-lists/new"
+						element={<EditorialFormPage mode="create" />}
+						handle={{ crumb: 'Yeni liste' }}
+					/>
+					<Route
+						path="editorial-lists/:id/edit"
+						element={<EditorialFormPage mode="edit" />}
+						handle={{ crumb: 'Düzenle' }}
+					/>
+					<Route
+						path="users"
+						element={<UsersListPage />}
+						handle={{ crumb: 'Kullanıcılar' }}
+					/>
+					<Route
+						path="media"
+						element={<MediaLibraryPage />}
+						handle={{ crumb: 'Medya' }}
+					/>
+				</Route>
+			</Routes>
+		</ErrorBoundary>
 	)
 }

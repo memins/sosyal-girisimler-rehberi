@@ -1,9 +1,11 @@
 import type {
+	CategoryWithCount,
 	Country,
 	DirectoryMeta,
 	EditorialList,
 	EditorialListStatus,
 	Enterprise,
+	EnterpriseDetail,
 	EnterpriseStatus,
 	EnterpriseSummary,
 	HomePayload,
@@ -74,6 +76,7 @@ type SubmissionRow = {
 	solution: string | null
 	status: 'pending' | 'approved' | 'rejected'
 	enterprise_id: string | null
+	rejection_reason: string | null
 	created_at: string
 	updated_at: string
 }
@@ -119,7 +122,7 @@ export async function getDirectoryMeta(db: D1Database): Promise<DirectoryMeta> {
 }
 
 export async function getHomePayload(db: D1Database): Promise<HomePayload> {
-	const [stats, featuredRows, meta, editorialLists] = await Promise.all([
+	const [stats, featuredRows, categories, editorialLists] = await Promise.all([
 		getSiteStats(db),
 		db
 			.prepare(
@@ -127,7 +130,7 @@ export async function getHomePayload(db: D1Database): Promise<HomePayload> {
 			)
 			.bind('published')
 			.all<EnterpriseRow>(),
-		getDirectoryMeta(db),
+		listCategoriesWithCounts(db),
 		listEditorialLists(db, true),
 	])
 	const featured = await mapEnterpriseSummaries(db, featuredRows.results)
@@ -135,9 +138,30 @@ export async function getHomePayload(db: D1Database): Promise<HomePayload> {
 	return {
 		stats,
 		featured,
-		categories: meta.categories,
+		categories,
 		editorialLists,
 	}
+}
+
+async function listCategoriesWithCounts(db: D1Database): Promise<Array<CategoryWithCount>> {
+	const rows = await db
+		.prepare(
+			`SELECT c.id, c.name, c.icon, c.sort_order,
+				(SELECT COUNT(*) FROM enterprise_categories ec
+					INNER JOIN enterprises e ON e.id = ec.enterprise_id
+					WHERE ec.category_id = c.id AND e.status = 'published') AS enterprise_count
+				FROM categories c
+				ORDER BY c.sort_order`,
+		)
+		.all<TaxonomyRow & { enterprise_count: number }>()
+
+	return rows.results.map((row) => ({
+		id: row.id,
+		name: row.name,
+		icon: row.icon,
+		sortOrder: row.sort_order,
+		enterpriseCount: row.enterprise_count ?? 0,
+	}))
 }
 
 export async function getSiteStats(db: D1Database): Promise<SiteStats> {
@@ -195,15 +219,40 @@ export async function listEnterprises(
 	addExistsFilter(conditions, params, filters.sdgs, 'enterprise_sdgs', 'sdg_id')
 
 	const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-	const rows = await db
-		.prepare(`SELECT * FROM enterprises ${where} ORDER BY is_featured DESC, name ASC LIMIT 100`)
+	const totalRow = await db
+		.prepare(`SELECT COUNT(*) as count FROM enterprises ${where}`)
 		.bind(...params)
+		.first<CountRow>()
+	const total = totalRow?.count ?? 0
+
+	const orderBy = enterpriseOrderBy(filters.sort)
+	const offset = (filters.page - 1) * filters.pageSize
+	const rows = await db
+		.prepare(
+			`SELECT * FROM enterprises ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
+		)
+		.bind(...params, filters.pageSize, offset)
 		.all<EnterpriseRow>()
 	const items = await mapEnterpriseSummaries(db, rows.results)
 
 	return {
 		items,
-		total: items.length,
+		total,
+		page: filters.page,
+		pageSize: filters.pageSize,
+		sort: filters.sort,
+	}
+}
+
+function enterpriseOrderBy(sort: EnterpriseFilters['sort']): string {
+	switch (sort) {
+		case 'newest':
+			return 'created_at DESC, name ASC'
+		case 'name':
+			return 'name ASC'
+		case 'featured':
+		default:
+			return 'is_featured DESC, name ASC'
 	}
 }
 
@@ -220,6 +269,42 @@ export async function getEnterpriseBySlug(db: D1Database, slug: string): Promise
 	const relations = await loadRelations(db, [row.id])
 
 	return mapEnterpriseRow(row, relations)
+}
+
+export async function getEnterpriseDetailBySlug(
+	db: D1Database,
+	slug: string,
+): Promise<EnterpriseDetail | null> {
+	const enterprise = await getEnterpriseBySlug(db, slug)
+	if (!enterprise) return null
+
+	const related = await listRelatedEnterprises(db, enterprise)
+	return { ...enterprise, related }
+}
+
+async function listRelatedEnterprises(
+	db: D1Database,
+	enterprise: Enterprise,
+	limit = 3,
+): Promise<Array<EnterpriseSummary>> {
+	const categoryIds = enterprise.categories.map((c) => c.id)
+	if (categoryIds.length === 0) return []
+
+	const placeholders = categoryIds.map(() => '?').join(', ')
+	const rows = await db
+		.prepare(
+			`SELECT DISTINCT e.* FROM enterprises e
+				INNER JOIN enterprise_categories ec ON ec.enterprise_id = e.id
+				WHERE ec.category_id IN (${placeholders})
+					AND e.id != ?
+					AND e.status = 'published'
+				ORDER BY e.is_featured DESC, e.updated_at DESC
+				LIMIT ?`,
+		)
+		.bind(...categoryIds, enterprise.id, limit)
+		.all<EnterpriseRow>()
+
+	return mapEnterpriseSummaries(db, rows.results)
 }
 
 export async function createSubmission(
@@ -750,9 +835,45 @@ function mapSubmissionRow(row: SubmissionRow): Submission {
 		solution: row.solution,
 		status: row.status,
 		enterpriseId: row.enterprise_id,
+		rejectionReason: row.rejection_reason,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 	}
+}
+
+export async function rejectSubmission(
+	db: D1Database,
+	submissionId: string,
+	reason?: string,
+): Promise<Submission> {
+	const submission = await getSubmissionById(db, submissionId)
+	if (!submission) {
+		throw new Error('Submission not found')
+	}
+
+	await db
+		.prepare(
+			'UPDATE submissions SET status = ?, rejection_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+		)
+		.bind('rejected', reason?.trim() || null, submissionId)
+		.run()
+
+	const updated = await getSubmissionById(db, submissionId)
+	if (!updated) {
+		throw new Error('Submission not found after reject')
+	}
+	return updated
+}
+
+export async function getEnterpriseById(db: D1Database, id: string): Promise<Enterprise | null> {
+	const row = await db
+		.prepare('SELECT * FROM enterprises WHERE id = ? LIMIT 1')
+		.bind(id)
+		.first<EnterpriseRow>()
+
+	if (!row) return null
+	const relations = await loadRelations(db, [row.id])
+	return mapEnterpriseRow(row, relations)
 }
 
 function mapTaxonomyRow(row: TaxonomyRow): TaxonomyItem {

@@ -19,6 +19,9 @@ describe('parseEnterpriseFilters', () => {
 			businessModels: [],
 			countries: ['TR', 'global'],
 			sdgs: [2, 12],
+			page: 1,
+			pageSize: 24,
+			sort: 'featured',
 		})
 	})
 
@@ -34,6 +37,29 @@ describe('parseEnterpriseFilters', () => {
 			businessModels: [],
 			countries: [],
 			sdgs: [4],
+			page: 1,
+			pageSize: 24,
+			sort: 'featured',
+		})
+	})
+
+	it('parses page, pageSize and sort with safe fallbacks', () => {
+		const valid = new URL(
+			'https://sosyal.genclink.com/api/enterprises?page=3&pageSize=10&sort=newest',
+		)
+		expect(parseEnterpriseFilters(valid)).toMatchObject({
+			page: 3,
+			pageSize: 10,
+			sort: 'newest',
+		})
+
+		const invalid = new URL(
+			'https://sosyal.genclink.com/api/enterprises?page=-2&pageSize=999&sort=hacked',
+		)
+		expect(parseEnterpriseFilters(invalid)).toMatchObject({
+			page: 1,
+			pageSize: 60,
+			sort: 'featured',
 		})
 	})
 })

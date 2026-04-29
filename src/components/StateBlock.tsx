@@ -24,3 +24,16 @@ export function ErrorBlock({ title = 'Bir şey ters gitti', message }: ErrorBloc
 		</Alert>
 	)
 }
+
+export function RouteFallback() {
+	return (
+		<div className="space-y-12">
+			<div className="space-y-4">
+				<Skeleton className="h-4 w-32" />
+				<Skeleton className="h-12 w-full max-w-xl" />
+				<Skeleton className="h-6 w-full max-w-md" />
+			</div>
+			<LoadingGrid />
+		</div>
+	)
+}

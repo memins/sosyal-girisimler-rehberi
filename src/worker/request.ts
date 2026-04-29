@@ -1,3 +1,5 @@
+import type { EnterpriseSort } from '@/shared/types'
+
 export type EnterpriseFilters = {
 	query: string
 	categories: Array<string>
@@ -5,7 +7,14 @@ export type EnterpriseFilters = {
 	businessModels: Array<string>
 	countries: Array<string>
 	sdgs: Array<number>
+	page: number
+	pageSize: number
+	sort: EnterpriseSort
 }
+
+const ALLOWED_SORTS: ReadonlyArray<EnterpriseSort> = ['featured', 'newest', 'name']
+const DEFAULT_PAGE_SIZE = 24
+const MAX_PAGE_SIZE = 60
 
 export type SubmissionValidationResult =
 	| { ok: true }
@@ -59,7 +68,27 @@ export function parseEnterpriseFilters(url: URL): EnterpriseFilters {
 		businessModels: parseStringList(url.searchParams.get('businessModels')),
 		countries: parseStringList(url.searchParams.get('countries')),
 		sdgs: parseSdgList(url.searchParams.get('sdgs')),
+		page: parsePositiveInt(url.searchParams.get('page'), 1),
+		pageSize: clampPageSize(parsePositiveInt(url.searchParams.get('pageSize'), DEFAULT_PAGE_SIZE)),
+		sort: parseSort(url.searchParams.get('sort')),
 	}
+}
+
+function parsePositiveInt(value: string | null, fallback: number): number {
+	if (!value) return fallback
+	const parsed = Number(value)
+	return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallback
+}
+
+function clampPageSize(value: number): number {
+	return Math.min(Math.max(value, 1), MAX_PAGE_SIZE)
+}
+
+function parseSort(value: string | null): EnterpriseSort {
+	if (value && (ALLOWED_SORTS as ReadonlyArray<string>).includes(value)) {
+		return value as EnterpriseSort
+	}
+	return 'featured'
 }
 
 export function validateSubmissionInput(input: SubmissionInput): SubmissionValidationResult {

@@ -8,6 +8,7 @@ import type {
 	DirectoryMeta,
 	EditorialList,
 	Enterprise,
+	EnterpriseDetail,
 	HomePayload,
 	ListEnterprisesPayload,
 	Submission,
@@ -16,6 +17,8 @@ import type {
 	UpsertEditorialListInput,
 	UpsertEnterpriseInput,
 } from '@/shared/types'
+
+import type { AdminMediaObject } from '@/shared/types'
 
 type AdminSummary = {
 	enterprises: number
@@ -37,7 +40,7 @@ export async function listEnterprises(searchParams: URLSearchParams): Promise<Li
 	return apiGet(`/api/enterprises${query.length > 0 ? `?${query}` : ''}`)
 }
 
-export async function getEnterprise(slug: string): Promise<Enterprise> {
+export async function getEnterprise(slug: string): Promise<EnterpriseDetail> {
 	return apiGet(`/api/enterprises/${encodeURIComponent(slug)}`)
 }
 
@@ -81,8 +84,15 @@ export async function getAdminSummary(): Promise<AdminSummary> {
 	return apiGet('/api/admin/summary')
 }
 
-export async function listAdminEnterprises(): Promise<ListEnterprisesPayload> {
-	return apiGet('/api/admin/enterprises')
+export async function listAdminEnterprises(
+	searchParams?: URLSearchParams,
+): Promise<ListEnterprisesPayload> {
+	const query = searchParams?.toString() ?? ''
+	return apiGet(`/api/admin/enterprises${query.length > 0 ? `?${query}` : ''}`)
+}
+
+export async function getAdminEnterprise(id: string): Promise<Enterprise> {
+	return apiGet(`/api/admin/enterprises/${encodeURIComponent(id)}`)
 }
 
 export async function saveEnterprise(input: UpsertEnterpriseInput): Promise<Enterprise> {
@@ -95,6 +105,14 @@ export async function listSubmissions(): Promise<Array<Submission>> {
 
 export async function approveSubmission(id: string): Promise<Enterprise> {
 	return apiPost(`/api/admin/submissions/${encodeURIComponent(id)}/approve`, {})
+}
+
+export async function rejectSubmission(id: string, reason?: string): Promise<Submission> {
+	return apiPost(`/api/admin/submissions/${encodeURIComponent(id)}/reject`, { reason })
+}
+
+export async function listAdminMedia(): Promise<Array<AdminMediaObject>> {
+	return apiGet('/api/admin/media')
 }
 
 export async function listAdminEditorialLists(): Promise<Array<EditorialList>> {

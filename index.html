@@ -8,6 +8,16 @@
 			content="Türkiye'den ve dünyadan sosyal girişimleri keşfetmek için dijital rehber."
 		/>
 		<title>Sosyal Girişimler Rehberi</title>
+		<script>
+			(function () {
+				try {
+					var stored = localStorage.getItem('sgr-theme');
+					var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+					var resolved = stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+					if (resolved === 'dark') document.documentElement.classList.add('dark');
+				} catch (e) {}
+			})();
+		</script>
 	</head>
 	<body>
 		<div id="root"></div>

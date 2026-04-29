@@ -32,11 +32,13 @@ import {
 	approveSubmission,
 	createSubmission,
 	getDirectoryMeta,
-	getEnterpriseBySlug,
+	getEnterpriseById,
+	getEnterpriseDetailBySlug,
 	getHomePayload,
 	listEditorialLists,
 	listEnterprises,
 	listSubmissions,
+	rejectSubmission,
 	upsertEditorialList,
 	upsertEnterprise,
 } from './repository'
@@ -86,7 +88,10 @@ async function handleApiRequest(
 
 	const enterpriseMatch = pathname.match(/^\/api\/enterprises\/([^/]+)$/)
 	if (request.method === 'GET' && enterpriseMatch) {
-		const enterprise = await getEnterpriseBySlug(env.DB, decodeURIComponent(enterpriseMatch[1]))
+		const enterprise = await getEnterpriseDetailBySlug(
+			env.DB,
+			decodeURIComponent(enterpriseMatch[1]),
+		)
 
 		if (!enterprise || enterprise.status !== 'published') {
 			return apiError('not_found', 'Girişim bulunamadı.', 404)
@@ -322,6 +327,15 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 		return json(await listEnterprises(env.DB, parseEnterpriseFilters(url), true))
 	}
 
+	const adminEnterpriseMatch = pathname.match(/^\/api\/admin\/enterprises\/([^/]+)$/)
+	if (request.method === 'GET' && adminEnterpriseMatch) {
+		const enterprise = await getEnterpriseById(env.DB, decodeURIComponent(adminEnterpriseMatch[1]))
+		if (!enterprise) {
+			return apiError('not_found', 'Girişim bulunamadı.', 404)
+		}
+		return json(enterprise)
+	}
+
 	if (request.method === 'POST' && pathname === '/api/admin/enterprises') {
 		const body = (await readJsonBody(request)) as UpsertEnterpriseInput
 		const validation = validateEnterpriseInput(body)
@@ -348,6 +362,14 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 		return json(enterprise, { status: 201 })
 	}
 
+	const rejectMatch = pathname.match(/^\/api\/admin\/submissions\/([^/]+)\/reject$/)
+	if (request.method === 'POST' && rejectMatch) {
+		const body = (await readJsonBody(request).catch(() => ({}))) as { reason?: unknown }
+		const reason = typeof body.reason === 'string' ? body.reason : undefined
+		const submission = await rejectSubmission(env.DB, decodeURIComponent(rejectMatch[1]), reason)
+		return json(submission)
+	}
+
 	if (request.method === 'GET' && pathname === '/api/admin/editorial-lists') {
 		return json(await listEditorialLists(env.DB, false))
 	}
@@ -370,7 +392,23 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 		return uploadMedia(request, env)
 	}
 
+	if (request.method === 'GET' && pathname === '/api/admin/media') {
+		return listMedia(env)
+	}
+
 	return apiError('not_found', 'Admin API rotası bulunamadı.', 404)
+}
+
+async function listMedia(env: Env): Promise<Response> {
+	const list = await env.MEDIA.list({ prefix: 'uploads/', limit: 1000 })
+	return json(
+		list.objects.map((obj) => ({
+			key: obj.key,
+			size: obj.size,
+			uploaded: obj.uploaded.toISOString(),
+			contentType: obj.httpMetadata?.contentType ?? null,
+		})),
+	)
 }
 
 function validateAuthCredentials(email: unknown, password: unknown) {
