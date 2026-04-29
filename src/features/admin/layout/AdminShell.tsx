@@ -70,7 +70,7 @@ export function AdminShell() {
 		<AdminSessionContext.Provider value={sessionValue}>
 			<AdminTopbarProvider>
 				<div className="flex min-h-screen bg-background">
-					<div className="hidden md:block">
+					<div className="sticky top-0 hidden h-screen self-start md:block">
 						<AdminSidebar />
 					</div>
 					<Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
