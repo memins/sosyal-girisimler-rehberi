@@ -186,6 +186,36 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 		}
 	}
 
+	function onInvalid(errors: Record<string, unknown>) {
+		const FIELD_LABELS: Record<string, string> = {
+			name: 'Girişim adı',
+			slug: 'Slug',
+			shortDescription: 'Kısa açıklama',
+			problem: 'Gündem',
+			solution: 'Çözüm',
+			impact: 'Sosyal etki',
+			websiteUrl: 'Web sitesi',
+			instagramUrl: 'Instagram',
+			categoryIds: 'Kategoriler',
+			audienceIds: 'Hedef kitle',
+			businessModelIds: 'İş modeli',
+			countryCodes: 'Ülkeler',
+			sdgIds: 'SKA',
+			status: 'Durum',
+		}
+		const fields = Object.keys(errors)
+		const labels = fields.map((f) => FIELD_LABELS[f] ?? f)
+		toast.error(`Eksik alan: ${labels.join(', ')}`)
+		const firstField = fields[0]
+		if (firstField) {
+			const el = document.querySelector(
+				`[name="${firstField}"]`,
+			) as HTMLElement | null
+			el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+			el?.focus({ preventScroll: true })
+		}
+	}
+
 	return (
 		<div className="flex flex-col gap-8 pb-24">
 			<PageHeader
@@ -204,7 +234,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 			/>
 
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-10">
+				<form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-10">
 					<Section title="Temel bilgiler">
 						<div className="grid gap-5 md:grid-cols-2">
 							<FormField
