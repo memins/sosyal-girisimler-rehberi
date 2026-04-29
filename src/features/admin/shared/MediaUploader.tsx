@@ -1,4 +1,4 @@
-import { ImageOffIcon, RefreshCcwIcon, Trash2Icon, UploadCloudIcon } from 'lucide-react'
+import { RefreshCcwIcon, Trash2Icon, UploadCloudIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -126,25 +126,21 @@ export function MediaUploader({
 					<button
 						type="button"
 						onClick={() => inputRef.current?.click()}
-						className="flex size-full flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground transition hover:bg-secondary/40"
+						className="flex size-full flex-col items-center justify-center gap-1 px-3 text-center text-muted-foreground transition hover:bg-secondary/40"
 					>
 						{isUploading ? (
 							<>
-								<UploadCloudIcon className="size-6" />
-								<span className="text-sm">Yükleniyor… {progress}%</span>
+								<UploadCloudIcon className="size-5" />
+								<span className="text-xs">{progress}%</span>
 								<Progress value={progress ?? 0} className="w-3/4" />
 							</>
 						) : (
 							<>
-								<UploadCloudIcon className="size-6" />
-								<span className="text-sm">{label}</span>
-								<span className="text-xs">Sürükle bırak veya tıkla</span>
+								<UploadCloudIcon className="size-5" />
+								<span className="text-xs font-medium">{label}</span>
 							</>
 						)}
 					</button>
-				)}
-				{!value && !isUploading && (
-					<ImageOffIcon className="absolute right-3 top-3 size-4 text-muted-foreground/30" />
 				)}
 				<input
 					ref={inputRef}
@@ -154,11 +150,6 @@ export function MediaUploader({
 					onChange={(event) => handleSelect(event.target.files?.[0] ?? null)}
 				/>
 			</div>
-			{value && (
-				<p className="text-xs text-muted-foreground">
-					Anahtar: <span className="font-mono">{value}</span>
-				</p>
-			)}
 		</div>
 	)
 }

@@ -55,7 +55,7 @@ const emptyValues: EnterpriseFormValues = {
 	instagramUrl: '',
 	logoKey: null,
 	coverKey: null,
-	status: 'draft',
+	status: 'published',
 	isFeatured: false,
 	categoryIds: [],
 	audienceIds: [],
@@ -500,19 +500,22 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 					<Separator />
 
 					<Section title="Medya">
-						<div className="grid gap-6 md:grid-cols-2">
+						<p className="-mt-3 text-xs text-muted-foreground">
+							Logo: kart/listelerde küçük ikon. Kapak: detay sayfasının üst görseli.
+						</p>
+						<div className="flex flex-wrap items-start gap-6">
 							<FormField
 								control={form.control}
 								name="logoKey"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Logo (1:1)</FormLabel>
+									<FormItem className="flex w-36 flex-col gap-2">
+										<FormLabel>Logo</FormLabel>
 										<FormControl>
 											<MediaUploader
 												value={field.value ?? null}
 												onChange={field.onChange}
 												aspectRatio="1:1"
-												label="Logo yükle"
+												label="Logo"
 											/>
 										</FormControl>
 										<FormMessage />
@@ -523,14 +526,14 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								control={form.control}
 								name="coverKey"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Kapak görseli (16:9)</FormLabel>
+									<FormItem className="flex w-64 flex-col gap-2">
+										<FormLabel>Kapak görseli</FormLabel>
 										<FormControl>
 											<MediaUploader
 												value={field.value ?? null}
 												onChange={field.onChange}
 												aspectRatio="16:9"
-												label="Kapak yükle"
+												label="Kapak"
 											/>
 										</FormControl>
 										<FormMessage />
