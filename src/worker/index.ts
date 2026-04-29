@@ -417,8 +417,13 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 		}
 		if (request.method === 'POST') {
 			const body = (await readJsonBody(request)) as Partial<UpsertTaxonomyInput>
+			console.log('taxonomy.create.received', { type, body })
 			if (typeof body.id !== 'string' || typeof body.name !== 'string') {
-				return apiError('bad_request', 'id ve name gerekli.', 400)
+				return apiError(
+					'bad_request',
+					`id ve name gerekli. Gelen: id=${typeof body.id}, name=${typeof body.name}`,
+					400,
+				)
 			}
 			try {
 				const created = await createTaxonomyItem(env.DB, type, {
@@ -430,6 +435,7 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 				await env.CACHE.delete('home:v1')
 				return json(created, { status: 201 })
 			} catch (error) {
+				console.error('taxonomy.create.error', { type, body, error: String(error) })
 				return apiError('bad_request', errorMessage(error), 400)
 			}
 		}
