@@ -619,6 +619,8 @@ async function mapEnterpriseSummaries(
 
 	return rows.map((row) => {
 		const enterprise = mapEnterpriseRow(row, relations)
+		const coverFallback = enterprise.coverKey ?? enterprise.gallery[0]?.key ?? null
+		const logoFallback = enterprise.logoKey ?? coverFallback
 
 		return {
 			id: enterprise.id,
@@ -626,8 +628,8 @@ async function mapEnterpriseSummaries(
 			name: enterprise.name,
 			shortDescription: enterprise.shortDescription,
 			problem: enterprise.problem,
-			logoKey: enterprise.logoKey,
-			coverKey: enterprise.coverKey,
+			logoKey: logoFallback,
+			coverKey: coverFallback,
 			isFeatured: enterprise.isFeatured,
 			categories: enterprise.categories,
 			countries: enterprise.countries,
