@@ -12,8 +12,12 @@
 			(function () {
 				try {
 					var stored = localStorage.getItem('sgr-theme');
-					var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-					var resolved = stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+					var resolved = 'light';
+					if (stored === 'dark') {
+						resolved = 'dark';
+					} else if (stored === 'system') {
+						resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+					}
 					if (resolved === 'dark') document.documentElement.classList.add('dark');
 				} catch (e) {}
 			})();
