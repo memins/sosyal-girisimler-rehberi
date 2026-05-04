@@ -198,7 +198,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 			instagramUrl: 'Instagram',
 			categoryIds: 'Kategoriler',
 			audienceIds: 'Hedef kitle',
-			businessModelIds: 'İş modeli',
+			businessModelIds: 'Kurum türü',
 			countryCodes: 'Ülkeler',
 			sdgIds: 'SKA',
 			status: 'Durum',
@@ -418,13 +418,13 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								name="businessModelIds"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>İş modeli</FormLabel>
+										<FormLabel>Kurum türü</FormLabel>
 										<FormControl>
 											<MultiSelect
 												options={businessModelOptions}
 												value={field.value}
 												onChange={field.onChange}
-												placeholder="İş modeli seç"
+												placeholder="Kurum türü seç"
 											/>
 										</FormControl>
 										<FormMessage />

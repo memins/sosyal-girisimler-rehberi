@@ -563,7 +563,7 @@ async function validateEnterpriseReferences(
 	await Promise.all([
 		validateIds(db, 'categories', 'id', input.categoryIds, 'Kategori'),
 		validateIds(db, 'audiences', 'id', input.audienceIds, 'Hedef kitle'),
-		validateIds(db, 'business_models', 'id', input.businessModelIds, 'İş modeli'),
+		validateIds(db, 'business_models', 'id', input.businessModelIds, 'Kurum türü'),
 		validateIds(db, 'countries', 'code', input.countryCodes, 'Ülke'),
 		validateIds(
 			db,
@@ -1073,7 +1073,7 @@ const TAXONOMY_CONFIGS: Record<TaxonomyType, TaxonomyConfig> = {
 		hasIcon: false,
 		refTable: 'enterprise_business_models',
 		refColumn: 'business_model_id',
-		label: 'İş modeli',
+		label: 'Kurum türü',
 	},
 }
 

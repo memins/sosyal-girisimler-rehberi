@@ -146,7 +146,7 @@ export function validateEnterpriseInput(input: EnterpriseInput): ValidationResul
 	}
 
 	if (!isStringArray(input.businessModelIds)) {
-		errors.businessModelIds = 'İş modeli değerleri liste olmalı.'
+		errors.businessModelIds = 'Kurum türü değerleri liste olmalı.'
 	}
 
 	if (!isStringArray(input.countryCodes)) {

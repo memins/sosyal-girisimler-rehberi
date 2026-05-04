@@ -6,7 +6,7 @@ import type { DirectoryMeta } from '@/shared/types'
 const FILTER_LABELS: Record<string, string> = {
 	categories: 'Alan',
 	audiences: 'Hedef kitle',
-	businessModels: 'İş modeli',
+	businessModels: 'Kurum türü',
 	countries: 'Ülke',
 	sdgs: 'SKA',
 }

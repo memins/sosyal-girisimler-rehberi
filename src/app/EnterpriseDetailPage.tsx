@@ -343,7 +343,7 @@ function EnterpriseFactsCard({ enterprise }: { enterprise: EnterpriseDetail }) {
 			</FactGroup>
 
 			{enterprise.businessModels.length > 0 && (
-				<FactGroup label="İş modeli">
+				<FactGroup label="Kurum türü">
 					<div className="flex flex-wrap gap-1.5">
 						{enterprise.businessModels.map((model) => (
 							<Badge key={model.id} variant="outline">

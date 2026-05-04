@@ -27,7 +27,7 @@ export function FilterSidebar({ meta, selected, onToggle }: FilterSidebarProps) 
 				onToggle={onToggle}
 			/>
 			<FilterGroup
-				title="İş modeli"
+				title="Kurum türü"
 				param="businessModels"
 				items={meta.businessModels}
 				selected={selected}

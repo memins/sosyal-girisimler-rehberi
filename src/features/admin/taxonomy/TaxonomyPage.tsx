@@ -19,7 +19,7 @@ const TABS: Array<{ value: TaxonomyType; label: string; description: string; has
 	},
 	{
 		value: 'business-models',
-		label: 'İş modeli',
+		label: 'Kurum türü',
 		description: 'Girişimin organizasyon biçimi (sosyal girişim, kooperatif, vb.).',
 		hasIcon: false,
 	},
