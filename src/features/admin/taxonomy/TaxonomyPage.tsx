@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/page-header'
 import type { TaxonomyType } from '@/shared/types'
@@ -25,9 +26,31 @@ const TABS: Array<{ value: TaxonomyType; label: string; description: string; has
 	},
 ]
 
+const TAB_VALUES = TABS.map((t) => t.value)
+
+function isTaxonomyType(value: string | null): value is TaxonomyType {
+	return value !== null && (TAB_VALUES as Array<string>).includes(value)
+}
+
 export function TaxonomyPage() {
-	const [active, setActive] = useState<TaxonomyType>('categories')
+	const [searchParams, setSearchParams] = useSearchParams()
+	const tabParam = searchParams.get('tab')
+	const active: TaxonomyType = isTaxonomyType(tabParam) ? tabParam : 'categories'
 	const current = TABS.find((t) => t.value === active) ?? TABS[0]
+
+	useEffect(() => {
+		if (!tabParam) {
+			const next = new URLSearchParams(searchParams)
+			next.set('tab', 'categories')
+			setSearchParams(next, { replace: true })
+		}
+	}, [tabParam, searchParams, setSearchParams])
+
+	function handleTabChange(value: string) {
+		const next = new URLSearchParams(searchParams)
+		next.set('tab', value)
+		setSearchParams(next, { replace: true })
+	}
 
 	return (
 		<div className="flex flex-col gap-8">
@@ -36,7 +59,7 @@ export function TaxonomyPage() {
 				title="Sınıflandırma"
 				description="Kategoriler, hedef kitleler ve iş modellerini buradan yönet — yeni öğe ekle, düzenle veya kullanılmayanları sil."
 			/>
-			<Tabs value={active} onValueChange={(value) => setActive(value as TaxonomyType)}>
+			<Tabs value={active} onValueChange={handleTabChange}>
 				<TabsList>
 					{TABS.map((tab) => (
 						<TabsTrigger key={tab.value} value={tab.value}>

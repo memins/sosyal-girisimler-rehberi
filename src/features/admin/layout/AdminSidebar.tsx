@@ -27,67 +27,55 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { useAdminSession } from '@/features/admin/state/useAdminSession'
 import { cn } from '@/lib/utils'
 
+interface NavChild {
+	to: string
+	label: string
+	matchSearch?: string
+}
+
 interface NavItem {
 	to: string
 	label: string
 	icon: LucideIcon
 	end?: boolean
 	ownerOnly?: boolean
+	children?: ReadonlyArray<NavChild>
 }
 
-interface NavGroup {
-	id: string
-	label?: string
-	items: Array<NavItem>
-}
-
-const NAV_GROUPS: ReadonlyArray<NavGroup> = [
+const NAV_ITEMS: ReadonlyArray<NavItem> = [
+	{ to: '/admin', label: 'Panel', icon: LayoutDashboardIcon, end: true },
+	{ to: '/admin/enterprises', label: 'Girişimler', icon: Building2Icon },
+	{ to: '/admin/submissions', label: 'Yeni öneriler', icon: InboxIcon },
 	{
-		id: 'panel',
-		items: [{ to: '/admin', label: 'Panel', icon: LayoutDashboardIcon, end: true }],
+		to: '/admin/edit-suggestions',
+		label: 'Düzenleme önerileri',
+		icon: MessagesSquareIcon,
 	},
+	{ to: '/admin/editorial-lists', label: 'Editöryel listeler', icon: HomeIcon },
 	{
-		id: 'icerik',
-		label: 'İçerik',
-		items: [
-			{ to: '/admin/enterprises', label: 'Girişimler', icon: Building2Icon },
-			{ to: '/admin/editorial-lists', label: 'Editöryel listeler', icon: HomeIcon },
-		],
-	},
-	{
-		id: 'topluluk',
-		label: 'Topluluk',
-		items: [
-			{ to: '/admin/submissions', label: 'Yeni öneriler', icon: InboxIcon },
+		to: '/admin/taxonomy',
+		label: 'Sınıflandırma',
+		icon: TagsIcon,
+		children: [
 			{
-				to: '/admin/edit-suggestions',
-				label: 'Düzenleme önerileri',
-				icon: MessagesSquareIcon,
+				to: '/admin/taxonomy?tab=categories',
+				label: 'Kategoriler',
+				matchSearch: 'tab=categories',
+			},
+			{
+				to: '/admin/taxonomy?tab=audiences',
+				label: 'Hedef kitle',
+				matchSearch: 'tab=audiences',
+			},
+			{
+				to: '/admin/taxonomy?tab=business-models',
+				label: 'Kurum türü',
+				matchSearch: 'tab=business-models',
 			},
 		],
 	},
-	{
-		id: 'sistem',
-		label: 'Sistem',
-		items: [
-			{ to: '/admin/taxonomy', label: 'Sınıflandırma', icon: TagsIcon },
-			{ to: '/admin/users', label: 'Kullanıcılar', icon: UsersIcon, ownerOnly: true },
-		],
-	},
+	{ to: '/admin/users', label: 'Kullanıcılar', icon: UsersIcon, ownerOnly: true },
 ]
-
-const STORAGE_KEY = 'sgr-admin-sidebar-groups'
-
-function readStoredExpansion(): Record<string, boolean> {
-	if (typeof window === 'undefined') return {}
-	try {
-		const value = localStorage.getItem(STORAGE_KEY)
-		if (value) return JSON.parse(value) as Record<string, boolean>
-	} catch {
-		// ignore
-	}
-	return {}
-}
 
 interface AdminSidebarProps {
 	onNavigate?: () => void
@@ -95,45 +83,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 	const { user, logout } = useAdminSession()
-	const location = useLocation()
 	const initials = user.email.slice(0, 2).toUpperCase()
-
-	const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
-		const stored = readStoredExpansion()
-		const defaults: Record<string, boolean> = {}
-		for (const group of NAV_GROUPS) {
-			if (group.label) defaults[group.id] = true
-		}
-		return { ...defaults, ...stored }
-	})
-
-	useEffect(() => {
-		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(expanded))
-		} catch {
-			// ignore quota errors
-		}
-	}, [expanded])
-
-	// Auto-open the group that contains the active route, but never collapse
-	// other groups the user already expanded.
-	useEffect(() => {
-		const active = NAV_GROUPS.find((group) =>
-			group.items.some((item) =>
-				item.end
-					? location.pathname === item.to
-					: location.pathname === item.to ||
-						location.pathname.startsWith(`${item.to}/`),
-			),
-		)
-		if (active?.label && !expanded[active.id]) {
-			setExpanded((prev) => ({ ...prev, [active.id]: true }))
-		}
-	}, [location.pathname, expanded])
-
-	function toggleGroup(id: string) {
-		setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
-	}
 
 	return (
 		<aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-card/40">
@@ -143,58 +93,18 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 					Admin paneli
 				</span>
 			</Link>
-			<nav className="flex flex-1 flex-col gap-3 overflow-y-auto px-3 pb-4">
-				{NAV_GROUPS.map((group) => {
-					const visibleItems = group.items.filter(
-						(item) => !item.ownerOnly || user.role === 'owner',
-					)
-					if (visibleItems.length === 0) return null
-
-					if (!group.label) {
-						return (
-							<div key={group.id} className="flex flex-col gap-0.5">
-								{visibleItems.map((item) => (
-									<NavItemLink
-										key={item.to}
-										item={item}
-										onNavigate={onNavigate}
-									/>
-								))}
-							</div>
-						)
-					}
-
-					const isOpen = expanded[group.id] ?? true
-					return (
-						<div key={group.id} className="flex flex-col gap-0.5">
-							<button
-								type="button"
-								onClick={() => toggleGroup(group.id)}
-								className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold tracking-[0.2em] text-muted-foreground/70 uppercase transition hover:text-foreground"
-								aria-expanded={isOpen}
-							>
-								<ChevronRightIcon
-									className={cn(
-										'size-3 transition-transform duration-200',
-										isOpen && 'rotate-90',
-									)}
-								/>
-								{group.label}
-							</button>
-							{isOpen && (
-								<div className="flex flex-col gap-0.5">
-									{visibleItems.map((item) => (
-										<NavItemLink
-											key={item.to}
-											item={item}
-											onNavigate={onNavigate}
-										/>
-									))}
-								</div>
-							)}
-						</div>
-					)
-				})}
+			<nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-4">
+				{NAV_ITEMS.filter((item) => !item.ownerOnly || user.role === 'owner').map((item) =>
+					item.children && item.children.length > 0 ? (
+						<NavItemWithChildren
+							key={item.to}
+							item={item}
+							onNavigate={onNavigate}
+						/>
+					) : (
+						<NavItemLink key={item.to} item={item} onNavigate={onNavigate} />
+					),
+				)}
 			</nav>
 			<div className="flex items-center gap-2 border-t border-border px-3 py-3">
 				<DropdownMenu>
@@ -229,13 +139,7 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 	)
 }
 
-function NavItemLink({
-	item,
-	onNavigate,
-}: {
-	item: NavItem
-	onNavigate?: () => void
-}) {
+function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
 	return (
 		<NavLink
 			to={item.to}
@@ -253,5 +157,76 @@ function NavItemLink({
 			<item.icon className="size-4" />
 			{item.label}
 		</NavLink>
+	)
+}
+
+function NavItemWithChildren({
+	item,
+	onNavigate,
+}: {
+	item: NavItem
+	onNavigate?: () => void
+}) {
+	const location = useLocation()
+	const isOnRoute =
+		location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
+	const [open, setOpen] = useState(isOnRoute)
+
+	useEffect(() => {
+		if (isOnRoute) setOpen(true)
+	}, [isOnRoute])
+
+	const search = location.search.replace(/^\?/, '')
+
+	return (
+		<div className="flex flex-col gap-0.5">
+			<button
+				type="button"
+				onClick={() => setOpen((value) => !value)}
+				aria-expanded={open}
+				className={cn(
+					'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition',
+					isOnRoute
+						? 'bg-secondary text-foreground'
+						: 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground',
+				)}
+			>
+				<item.icon className="size-4" />
+				<span className="flex-1 text-left">{item.label}</span>
+				<ChevronRightIcon
+					className={cn(
+						'size-3.5 shrink-0 transition-transform duration-200',
+						open && 'rotate-90',
+					)}
+				/>
+			</button>
+			{open && item.children && (
+				<div className="ml-4 flex flex-col gap-0.5 border-l border-border pl-3">
+					{item.children.map((child, index) => {
+						const isActive =
+							isOnRoute &&
+							(child.matchSearch
+								? search === child.matchSearch ||
+									(index === 0 && search.length === 0)
+								: false)
+						return (
+							<Link
+								key={child.to}
+								to={child.to}
+								onClick={onNavigate}
+								className={cn(
+									'rounded-md px-3 py-1.5 text-sm transition',
+									isActive
+										? 'text-foreground'
+										: 'text-muted-foreground hover:text-foreground',
+								)}
+							>
+								{child.label}
+							</Link>
+						)
+					})}
+				</div>
+			)}
+		</div>
 	)
 }
