@@ -215,8 +215,12 @@ export async function listEnterprises(
 	}
 
 	if (filters.query.length > 0) {
-		conditions.push('(name LIKE ? OR short_description LIKE ? OR problem LIKE ? OR solution LIKE ?)')
-		const queryParam = `%${filters.query}%`
+		const normalized = turkishFold(filters.query)
+		const queryParam = `%${normalized}%`
+		const fields = ['name', 'short_description', 'problem', 'solution']
+		conditions.push(
+			`(${fields.map((f) => `${turkishFoldSql(f)} LIKE ?`).join(' OR ')})`,
+		)
 		params.push(queryParam, queryParam, queryParam, queryParam)
 	}
 
@@ -1363,4 +1367,31 @@ export async function rejectEditSuggestion(
 	const updated = await getEditSuggestionById(db, id)
 	if (!updated) throw new Error('Öneri okunamadı.')
 	return updated
+}
+
+const TURKISH_FOLD: ReadonlyArray<readonly [string, string]> = [
+	['Ç', 'c'], ['ç', 'c'],
+	['Ğ', 'g'], ['ğ', 'g'],
+	['Ü', 'u'], ['ü', 'u'],
+	['Ş', 's'], ['ş', 's'],
+	['Ö', 'o'], ['ö', 'o'],
+	['İ', 'i'], ['ı', 'i'],
+]
+
+/** Maps Turkish characters to ASCII equivalents and lowercases. */
+function turkishFold(value: string): string {
+	let result = value
+	for (const [from, to] of TURKISH_FOLD) {
+		result = result.split(from).join(to)
+	}
+	return result.toLowerCase()
+}
+
+/** Build a SQL expression that turkish-folds + lowercases a column. */
+function turkishFoldSql(column: string): string {
+	let expr = column
+	for (const [from, to] of TURKISH_FOLD) {
+		expr = `REPLACE(${expr}, '${from}', '${to}')`
+	}
+	return `LOWER(${expr})`
 }
