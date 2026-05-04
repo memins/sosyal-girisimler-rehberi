@@ -30,7 +30,9 @@ import {
 } from './request'
 import {
 	addEnterpriseMedia,
+	applyEditSuggestion,
 	approveSubmission,
+	createEditSuggestion,
 	createSubmission,
 	createTaxonomyItem,
 	deleteEnterprise,
@@ -40,11 +42,13 @@ import {
 	getEnterpriseById,
 	getEnterpriseDetailBySlug,
 	getHomePayload,
+	listEditSuggestions,
 	listEditorialLists,
 	listEnterpriseGallery,
 	listEnterprises,
 	listSubmissions,
 	listTaxonomyAdmin,
+	rejectEditSuggestion,
 	rejectSubmission,
 	reorderEnterpriseMedia,
 	updateEnterpriseMedia,
@@ -109,6 +113,30 @@ async function handleApiRequest(
 		}
 
 		return json(enterprise)
+	}
+
+	const editSuggestionMatch = pathname.match(
+		/^\/api\/enterprises\/([^/]+)\/edit-suggestions$/,
+	)
+	if (request.method === 'POST' && editSuggestionMatch) {
+		const slug = decodeURIComponent(editSuggestionMatch[1])
+		const body = (await readJsonBody(request)) as {
+			message?: unknown
+			contactEmail?: unknown
+		}
+		if (typeof body.message !== 'string' || body.message.trim().length < 10) {
+			return apiError('bad_request', 'En az 10 karakter mesaj gerekli.', 422)
+		}
+		try {
+			const suggestion = await createEditSuggestion(env.DB, slug, {
+				message: body.message,
+				contactEmail:
+					typeof body.contactEmail === 'string' ? body.contactEmail : undefined,
+			})
+			return json(suggestion, { status: 201 })
+		} catch (error) {
+			return apiError('bad_request', errorMessage(error), 400)
+		}
 	}
 
 	if (request.method === 'POST' && pathname === '/api/submissions') {
@@ -381,6 +409,43 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 		await env.CACHE.delete('home:v1')
 
 		return json(enterprise, { status: 201 })
+	}
+
+	if (request.method === 'GET' && pathname === '/api/admin/edit-suggestions') {
+		return json(await listEditSuggestions(env.DB))
+	}
+
+	const editSuggestionApplyMatch = pathname.match(
+		/^\/api\/admin\/edit-suggestions\/([^/]+)\/apply$/,
+	)
+	if (request.method === 'POST' && editSuggestionApplyMatch) {
+		try {
+			const updated = await applyEditSuggestion(
+				env.DB,
+				decodeURIComponent(editSuggestionApplyMatch[1]),
+			)
+			return json(updated)
+		} catch (error) {
+			return apiError('not_found', errorMessage(error), 404)
+		}
+	}
+
+	const editSuggestionRejectMatch = pathname.match(
+		/^\/api\/admin\/edit-suggestions\/([^/]+)\/reject$/,
+	)
+	if (request.method === 'POST' && editSuggestionRejectMatch) {
+		const body = (await readJsonBody(request).catch(() => ({}))) as { reason?: unknown }
+		const reason = typeof body.reason === 'string' ? body.reason : undefined
+		try {
+			const updated = await rejectEditSuggestion(
+				env.DB,
+				decodeURIComponent(editSuggestionRejectMatch[1]),
+				reason,
+			)
+			return json(updated)
+		} catch (error) {
+			return apiError('not_found', errorMessage(error), 404)
+		}
 	}
 
 	const rejectMatch = pathname.match(/^\/api\/admin\/submissions\/([^/]+)\/reject$/)

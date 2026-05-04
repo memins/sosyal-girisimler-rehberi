@@ -113,7 +113,8 @@ function buildCrumbs(pathname: string): Array<Crumb> {
 
 	const root: Record<string, { label: string; to: string }> = {
 		enterprises: { label: 'Girişimler', to: '/admin/enterprises' },
-		submissions: { label: 'Öneriler', to: '/admin/submissions' },
+		submissions: { label: 'Yeni öneriler', to: '/admin/submissions' },
+		'edit-suggestions': { label: 'Düzenleme önerileri', to: '/admin/edit-suggestions' },
 		'editorial-lists': { label: 'Editöryel listeler', to: '/admin/editorial-lists' },
 		taxonomy: { label: 'Sınıflandırma', to: '/admin/taxonomy' },
 		users: { label: 'Kullanıcılar', to: '/admin/users' },

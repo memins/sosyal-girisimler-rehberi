@@ -20,6 +20,8 @@ import type {
 
 import type {
 	AdminMediaObject,
+	CreateEditSuggestionInput,
+	EditSuggestion,
 	EnterpriseMediaItem,
 	TaxonomyItemAdmin,
 	TaxonomyType,
@@ -53,6 +55,33 @@ export async function getEnterprise(slug: string): Promise<EnterpriseDetail> {
 
 export async function createSubmission(input: SubmissionInput): Promise<Submission> {
 	return apiPost('/api/submissions', input)
+}
+
+export async function submitEditSuggestion(
+	enterpriseSlug: string,
+	input: CreateEditSuggestionInput,
+): Promise<EditSuggestion> {
+	return apiPost(
+		`/api/enterprises/${encodeURIComponent(enterpriseSlug)}/edit-suggestions`,
+		input,
+	)
+}
+
+export async function listAdminEditSuggestions(): Promise<Array<EditSuggestion>> {
+	return apiGet('/api/admin/edit-suggestions')
+}
+
+export async function applyAdminEditSuggestion(id: string): Promise<EditSuggestion> {
+	return apiPost(`/api/admin/edit-suggestions/${encodeURIComponent(id)}/apply`, {})
+}
+
+export async function rejectAdminEditSuggestion(
+	id: string,
+	reason?: string,
+): Promise<EditSuggestion> {
+	return apiPost(`/api/admin/edit-suggestions/${encodeURIComponent(id)}/reject`, {
+		reason,
+	})
 }
 
 export async function getBootstrapStatus(): Promise<BootstrapStatus> {

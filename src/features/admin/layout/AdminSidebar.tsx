@@ -4,6 +4,7 @@ import {
 	InboxIcon,
 	LayoutDashboardIcon,
 	LogOutIcon,
+	MessagesSquareIcon,
 	TagsIcon,
 	UsersIcon,
 } from 'lucide-react'
@@ -26,7 +27,8 @@ import { cn } from '@/lib/utils'
 const NAV_ITEMS = [
 	{ to: '/admin', label: 'Panel', icon: LayoutDashboardIcon, end: true },
 	{ to: '/admin/enterprises', label: 'Girişimler', icon: Building2Icon },
-	{ to: '/admin/submissions', label: 'Öneriler', icon: InboxIcon },
+	{ to: '/admin/submissions', label: 'Yeni öneriler', icon: InboxIcon },
+	{ to: '/admin/edit-suggestions', label: 'Düzenleme önerileri', icon: MessagesSquareIcon },
 	{ to: '/admin/editorial-lists', label: 'Editöryel listeler', icon: HomeIcon },
 	{ to: '/admin/taxonomy', label: 'Sınıflandırma', icon: TagsIcon },
 	{ to: '/admin/users', label: 'Kullanıcılar', icon: UsersIcon, ownerOnly: true },

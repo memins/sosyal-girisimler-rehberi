@@ -2,6 +2,7 @@ import type {
 	CategoryWithCount,
 	Country,
 	DirectoryMeta,
+	EditSuggestion,
 	EditorialList,
 	EditorialListStatus,
 	Enterprise,
@@ -1233,4 +1234,133 @@ async function getNextTaxonomySortOrder(
 		.prepare(`SELECT MAX(sort_order) AS max FROM ${cfg.table}`)
 		.first<{ max: number | null }>()
 	return (row?.max ?? 0) + 1
+}
+
+type EditSuggestionRow = {
+	id: string
+	enterprise_id: string
+	enterprise_name: string
+	enterprise_slug: string
+	message: string
+	contact_email: string | null
+	status: 'pending' | 'applied' | 'rejected'
+	rejection_reason: string | null
+	created_at: string
+	updated_at: string
+}
+
+function mapEditSuggestionRow(row: EditSuggestionRow): EditSuggestion {
+	return {
+		id: row.id,
+		enterpriseId: row.enterprise_id,
+		enterpriseName: row.enterprise_name,
+		enterpriseSlug: row.enterprise_slug,
+		message: row.message,
+		contactEmail: row.contact_email,
+		status: row.status,
+		rejectionReason: row.rejection_reason,
+		createdAt: row.created_at,
+		updatedAt: row.updated_at,
+	}
+}
+
+export async function createEditSuggestion(
+	db: D1Database,
+	enterpriseSlug: string,
+	input: { message: string; contactEmail?: string },
+): Promise<EditSuggestion> {
+	const enterprise = await db
+		.prepare('SELECT id FROM enterprises WHERE slug = ? LIMIT 1')
+		.bind(enterpriseSlug)
+		.first<{ id: string }>()
+	if (!enterprise) {
+		throw new Error('Girişim bulunamadı.')
+	}
+	const trimmedMessage = input.message.trim()
+	if (trimmedMessage.length < 10) {
+		throw new Error('Düzenleme önerisi en az 10 karakter olmalı.')
+	}
+	const id = crypto.randomUUID()
+	await db
+		.prepare(
+			`INSERT INTO edit_suggestions (id, enterprise_id, message, contact_email)
+				VALUES (?, ?, ?, ?)`,
+		)
+		.bind(id, enterprise.id, trimmedMessage, input.contactEmail?.trim() || null)
+		.run()
+	const created = await getEditSuggestionById(db, id)
+	if (!created) throw new Error('Öneri kaydedildikten sonra okunamadı.')
+	return created
+}
+
+export async function listEditSuggestions(
+	db: D1Database,
+): Promise<Array<EditSuggestion>> {
+	const rows = await db
+		.prepare(
+			`SELECT es.*, e.name AS enterprise_name, e.slug AS enterprise_slug
+				FROM edit_suggestions es
+				INNER JOIN enterprises e ON e.id = es.enterprise_id
+				ORDER BY
+					CASE es.status WHEN 'pending' THEN 0 ELSE 1 END,
+					es.created_at DESC
+				LIMIT 200`,
+		)
+		.all<EditSuggestionRow>()
+	return rows.results.map(mapEditSuggestionRow)
+}
+
+export async function getEditSuggestionById(
+	db: D1Database,
+	id: string,
+): Promise<EditSuggestion | null> {
+	const row = await db
+		.prepare(
+			`SELECT es.*, e.name AS enterprise_name, e.slug AS enterprise_slug
+				FROM edit_suggestions es
+				INNER JOIN enterprises e ON e.id = es.enterprise_id
+				WHERE es.id = ? LIMIT 1`,
+		)
+		.bind(id)
+		.first<EditSuggestionRow>()
+	return row ? mapEditSuggestionRow(row) : null
+}
+
+export async function applyEditSuggestion(
+	db: D1Database,
+	id: string,
+): Promise<EditSuggestion> {
+	const existing = await getEditSuggestionById(db, id)
+	if (!existing) throw new Error('Öneri bulunamadı.')
+	await db
+		.prepare(
+			`UPDATE edit_suggestions
+				SET status = 'applied', rejection_reason = NULL, updated_at = CURRENT_TIMESTAMP
+				WHERE id = ?`,
+		)
+		.bind(id)
+		.run()
+	const updated = await getEditSuggestionById(db, id)
+	if (!updated) throw new Error('Öneri okunamadı.')
+	return updated
+}
+
+export async function rejectEditSuggestion(
+	db: D1Database,
+	id: string,
+	reason?: string,
+): Promise<EditSuggestion> {
+	const existing = await getEditSuggestionById(db, id)
+	if (!existing) throw new Error('Öneri bulunamadı.')
+	await db
+		.prepare(
+			`UPDATE edit_suggestions
+				SET status = 'rejected', rejection_reason = ?, updated_at = CURRENT_TIMESTAMP
+				WHERE id = ?`,
+		)
+		.bind(reason?.trim() || null, id)
+		.run()
+	const updated = await getEditSuggestionById(db, id)
+	if (!updated) throw new Error('Öneri okunamadı.')
+	return updated
 }

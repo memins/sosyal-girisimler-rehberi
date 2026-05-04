@@ -95,6 +95,26 @@ export type EnterpriseDetail = Enterprise & {
 	related: Array<EnterpriseSummary>
 }
 
+export type EditSuggestionStatus = 'pending' | 'applied' | 'rejected'
+
+export type EditSuggestion = {
+	id: string
+	enterpriseId: string
+	enterpriseName: string
+	enterpriseSlug: string
+	message: string
+	contactEmail: string | null
+	status: EditSuggestionStatus
+	rejectionReason: string | null
+	createdAt: string
+	updatedAt: string
+}
+
+export type CreateEditSuggestionInput = {
+	message: string
+	contactEmail?: string
+}
+
 export type Submission = {
 	id: string
 	name: string

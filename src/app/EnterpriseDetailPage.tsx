@@ -5,14 +5,26 @@ import {
 	HeartIcon,
 	LightbulbIcon,
 	LinkIcon,
+	Loader2Icon,
+	PencilIcon,
 	Share2Icon,
 	SparklesIcon,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getEnterprise } from '@/lib/api'
+import { getEnterprise, submitEditSuggestion } from '@/lib/api'
 import type { EnterpriseDetail } from '@/shared/types'
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import {
 	Breadcrumb,
@@ -130,6 +142,7 @@ export function EnterpriseDetailPage() {
 							<HeartIcon className={saved ? 'fill-current' : ''} />
 							{saved ? 'Kaydedildi' : 'Kaydet'}
 						</Button>
+						<EditSuggestionButton enterpriseSlug={enterprise.slug} enterpriseName={enterprise.name} />
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button variant="outline">
@@ -406,4 +419,138 @@ function readSaved(): Array<string> {
 	} catch {
 		return []
 	}
+}
+
+interface EditSuggestionButtonProps {
+	enterpriseSlug: string
+	enterpriseName: string
+}
+
+function EditSuggestionButton({ enterpriseSlug, enterpriseName }: EditSuggestionButtonProps) {
+	const [open, setOpen] = useState(false)
+	const [message, setMessage] = useState('')
+	const [contactEmail, setContactEmail] = useState('')
+	const [submitting, setSubmitting] = useState(false)
+	const [done, setDone] = useState(false)
+
+	function reset() {
+		setMessage('')
+		setContactEmail('')
+		setDone(false)
+	}
+
+	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault()
+		if (message.trim().length < 10) {
+			toast.error('Mesaj en az 10 karakter olmalı.')
+			return
+		}
+		setSubmitting(true)
+		try {
+			await submitEditSuggestion(enterpriseSlug, {
+				message: message.trim(),
+				contactEmail: contactEmail.trim() || undefined,
+			})
+			setDone(true)
+			toast.success('Önerin alındı.')
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : 'Gönderilemedi.')
+		} finally {
+			setSubmitting(false)
+		}
+	}
+
+	return (
+		<>
+			<Button variant="outline" onClick={() => setOpen(true)}>
+				<PencilIcon />
+				Düzenleme öner
+			</Button>
+			<Dialog
+				open={open}
+				onOpenChange={(value) => {
+					setOpen(value)
+					if (!value) {
+						setTimeout(reset, 200)
+					}
+				}}
+			>
+				<DialogContent className="sm:max-w-lg">
+					<DialogHeader>
+						<DialogTitle>{enterpriseName} için düzenleme öner</DialogTitle>
+						<DialogDescription>
+							Yanlış veya eksik gördüğün bir bilgi varsa anlat. Editör ekibi inceler ve
+							gerekli güncellemeleri yapar.
+						</DialogDescription>
+					</DialogHeader>
+					{done ? (
+						<div className="flex flex-col items-center gap-4 py-6 text-center">
+							<span className="flex size-12 items-center justify-center rounded-full bg-success/15 text-success">
+								<SparklesIcon className="size-6" />
+							</span>
+							<div className="space-y-1">
+								<p className="text-sm font-medium">Önerin editöre iletildi.</p>
+								<p className="text-xs text-muted-foreground">
+									Birkaç gün içinde inceleyecek ve gerekirse profili güncelleyeceğiz.
+								</p>
+							</div>
+							<Button
+								onClick={() => {
+									setOpen(false)
+									setTimeout(reset, 200)
+								}}
+							>
+								Kapat
+							</Button>
+						</div>
+					) : (
+						<form onSubmit={handleSubmit} className="flex flex-col gap-4">
+							<div className="flex flex-col gap-1.5">
+								<label className="text-sm font-medium" htmlFor="edit-suggestion-message">
+									Önerin <span className="text-destructive">*</span>
+								</label>
+								<Textarea
+									id="edit-suggestion-message"
+									rows={5}
+									required
+									minLength={10}
+									value={message}
+									onChange={(event) => setMessage(event.target.value)}
+									placeholder="Hangi bilgi yanlış/eksik? Düzeltilmesini önerdiğin metin nedir?"
+								/>
+								<p className="text-xs text-muted-foreground">En az 10 karakter.</p>
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<label className="text-sm font-medium" htmlFor="edit-suggestion-email">
+									İletişim e-postası <span className="text-muted-foreground">(opsiyonel)</span>
+								</label>
+								<Input
+									id="edit-suggestion-email"
+									type="email"
+									value={contactEmail}
+									onChange={(event) => setContactEmail(event.target.value)}
+									placeholder="editor@example.com"
+								/>
+								<p className="text-xs text-muted-foreground">
+									Sorumuz olursa bağlantı kurabilelim — yayınlanmaz.
+								</p>
+							</div>
+							<DialogFooter>
+								<Button type="submit" disabled={submitting}>
+									{submitting ? (
+										<>
+											<Loader2Icon className="animate-spin" />
+											Gönderiliyor…
+										</>
+									) : (
+										'Gönder'
+									)}
+								</Button>
+							</DialogFooter>
+						</form>
+					)}
+				</DialogContent>
+			</Dialog>
+		</>
+	)
 }

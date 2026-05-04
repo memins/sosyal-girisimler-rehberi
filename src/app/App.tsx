@@ -58,6 +58,11 @@ const MediaLibraryPage = lazy(() =>
 const TaxonomyPage = lazy(() =>
 	import('@/features/admin/taxonomy/TaxonomyPage').then((m) => ({ default: m.TaxonomyPage })),
 )
+const EditSuggestionsListPage = lazy(() =>
+	import('@/features/admin/edit-suggestions/EditSuggestionsListPage').then((m) => ({
+		default: m.EditSuggestionsListPage,
+	})),
+)
 
 export function App() {
 	return (
@@ -83,6 +88,7 @@ export function App() {
 					<Route path="enterprises/new" element={<EnterpriseFormPage mode="create" />} />
 					<Route path="enterprises/:id/edit" element={<EnterpriseFormPage mode="edit" />} />
 					<Route path="submissions" element={<SubmissionsListPage />} />
+					<Route path="edit-suggestions" element={<EditSuggestionsListPage />} />
 					<Route path="editorial-lists" element={<EditorialListPage />} />
 					<Route path="editorial-lists/new" element={<EditorialFormPage mode="create" />} />
 					<Route
