@@ -142,10 +142,6 @@ describe('validateEnterpriseInput', () => {
 			errors: {
 				name: 'Girişim adı gerekli.',
 				slug: 'Slug sadece küçük harf, sayı ve tire içermeli.',
-				shortDescription: 'Kısa açıklama en az 20 karakter olmalı.',
-				problem: 'Çalışma alanı gerekli.',
-				solution: 'Çözüm yöntemi gerekli.',
-				impact: 'Sosyal etki alanı gerekli.',
 				websiteUrl: 'URL http veya https ile başlamalı.',
 				sdgIds: 'SKA değerleri 1-17 aralığında olmalı.',
 			},

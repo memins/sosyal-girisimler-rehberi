@@ -25,13 +25,10 @@ export const enterpriseFormSchema = z.object({
 		.string()
 		.trim()
 		.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u, 'Slug sadece küçük harf, sayı ve tire içermeli.'),
-	shortDescription: z
-		.string()
-		.trim()
-		.min(20, 'Kısa açıklama en az 20 karakter olmalı.'),
-	problem: z.string().trim().min(1, 'Çalışma alanı gerekli.'),
-	solution: z.string().trim().min(1, 'Çözüm yöntemi gerekli.'),
-	impact: z.string().trim().min(1, 'Sosyal etki alanı gerekli.'),
+	shortDescription: z.string().optional().or(z.literal('')),
+	problem: z.string().optional().or(z.literal('')),
+	solution: z.string().optional().or(z.literal('')),
+	impact: z.string().optional().or(z.literal('')),
 	longContent: z.string().optional().or(z.literal('')),
 	websiteUrl: optionalUrl,
 	instagramUrl: optionalUrl,
@@ -39,10 +36,10 @@ export const enterpriseFormSchema = z.object({
 	coverKey: z.string().optional().nullable(),
 	status: z.enum(['draft', 'published', 'archived']),
 	isFeatured: z.boolean(),
-	categoryIds: z.array(z.string()).min(1, 'En az bir kategori seçin.'),
+	categoryIds: z.array(z.string()),
 	audienceIds: z.array(z.string()),
 	businessModelIds: z.array(z.string()),
-	countryCodes: z.array(z.string()).min(1, 'En az bir ülke seçin.'),
+	countryCodes: z.array(z.string()),
 	sdgIds: z.array(z.number().int().min(1).max(17)),
 	gallery: z
 		.array(

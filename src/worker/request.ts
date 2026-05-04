@@ -124,16 +124,6 @@ export function validateEnterpriseInput(input: EnterpriseInput): ValidationResul
 
 	requireText(errors, 'name', readString(input.name), 'Girişim adı gerekli.')
 	requireSlug(errors, readString(input.slug))
-	requireMinLength(
-		errors,
-		'shortDescription',
-		readString(input.shortDescription),
-		20,
-		'Kısa açıklama en az 20 karakter olmalı.',
-	)
-	requireText(errors, 'problem', readString(input.problem), 'Çalışma alanı gerekli.')
-	requireText(errors, 'solution', readString(input.solution), 'Çözüm yöntemi gerekli.')
-	requireText(errors, 'impact', readString(input.impact), 'Sosyal etki alanı gerekli.')
 	requireSafeUrl(errors, 'websiteUrl', readString(input.websiteUrl))
 	requireSafeUrl(errors, 'instagramUrl', readString(input.instagramUrl))
 
