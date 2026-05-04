@@ -18,32 +18,7 @@ import { Input } from '@/components/ui/input'
 import { ErrorBlock, LoadingGrid } from '@/components/StateBlock'
 import { Logomark } from '@/components/logomark'
 import { TaxonomyIcon } from '@/lib/taxonomy-icon'
-
-interface SdgMeta {
-	id: number
-	color: string
-	name: string
-}
-
-const SDG_DATA: ReadonlyArray<SdgMeta> = [
-	{ id: 1, color: '#E5243B', name: 'Yoksulluğa Son' },
-	{ id: 2, color: '#DDA63A', name: 'Açlığa Son' },
-	{ id: 3, color: '#4C9F38', name: 'Sağlık ve Kaliteli Yaşam' },
-	{ id: 4, color: '#C5192D', name: 'Nitelikli Eğitim' },
-	{ id: 5, color: '#FF3A21', name: 'Toplumsal Cinsiyet Eşitliği' },
-	{ id: 6, color: '#26BDE2', name: 'Temiz Su ve Sıhhi Koşullar' },
-	{ id: 7, color: '#FCC30B', name: 'Erişilebilir ve Temiz Enerji' },
-	{ id: 8, color: '#A21942', name: 'İnsana Yakışır İş' },
-	{ id: 9, color: '#FD6925', name: 'Sanayi ve Yenilikçilik' },
-	{ id: 10, color: '#DD1367', name: 'Eşitsizliklerin Azaltılması' },
-	{ id: 11, color: '#FD9D24', name: 'Sürdürülebilir Şehirler' },
-	{ id: 12, color: '#BF8B2E', name: 'Sorumlu Üretim ve Tüketim' },
-	{ id: 13, color: '#3F7E44', name: 'İklim Eylemi' },
-	{ id: 14, color: '#0A97D9', name: 'Sudaki Yaşam' },
-	{ id: 15, color: '#56C02B', name: 'Karasal Yaşam' },
-	{ id: 16, color: '#00689D', name: 'Barış ve Adalet' },
-	{ id: 17, color: '#19486A', name: 'Amaçlar için Ortaklıklar' },
-]
+import { SDG_DATA, type SdgMeta } from '@/lib/sdg'
 
 const POPULAR_CATEGORIES = [
 	{ label: 'Eğitim', categoryId: 'egitim' },
@@ -208,25 +183,32 @@ function HeroPreview({ stats, featured }: HeroPreviewProps) {
 				className="grid grid-cols-5 gap-2"
 				onMouseLeave={() => setHovered(null)}
 			>
-				{SDG_DATA.map((sdg, index) => (
-					<Link
-						key={sdg.id}
-						to={`/arama?sdgs=${sdg.id}`}
-						title={`${sdg.id}. ${sdg.name}`}
-						onMouseEnter={() => setHovered(sdg)}
-						className="group relative flex aspect-square animate-in fade-in zoom-in-95 items-center justify-center overflow-hidden rounded-xl text-white transition-all duration-300 ease-out hover:z-10 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-						style={{
-							background: sdg.color,
-							animationDelay: `${index * 40}ms`,
-							animationFillMode: 'both',
-						}}
-					>
-						<span className="relative z-10 text-base font-bold tracking-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]">
-							{sdg.id}
-						</span>
-						<span className="pointer-events-none absolute inset-0 bg-foreground/0 transition group-hover:bg-foreground/10" />
-					</Link>
-				))}
+				{SDG_DATA.map((sdg, index) => {
+					const Icon = sdg.icon
+					return (
+						<Link
+							key={sdg.id}
+							to={`/arama?sdgs=${sdg.id}`}
+							title={`${sdg.id}. ${sdg.name}`}
+							onMouseEnter={() => setHovered(sdg)}
+							className="group relative flex aspect-square animate-in fade-in zoom-in-95 flex-col items-center justify-center overflow-hidden rounded-xl text-white transition-all duration-300 ease-out hover:z-10 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+							style={{
+								background: sdg.color,
+								animationDelay: `${index * 40}ms`,
+								animationFillMode: 'both',
+							}}
+						>
+							<span className="absolute left-1.5 top-1 text-[10px] font-bold leading-none tracking-tight tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">
+								{sdg.id}
+							</span>
+							<Icon
+								className="relative z-10 size-5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)] transition-transform duration-300 group-hover:scale-110"
+								strokeWidth={2.4}
+							/>
+							<span className="pointer-events-none absolute inset-0 bg-foreground/0 transition group-hover:bg-foreground/10" />
+						</Link>
+					)
+				})}
 				<Link
 					to="/arama"
 					className="group col-span-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2.5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

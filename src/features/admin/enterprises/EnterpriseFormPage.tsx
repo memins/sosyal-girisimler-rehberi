@@ -35,6 +35,8 @@ import {
 } from '@/features/admin/schemas/enterprise'
 import { EnterpriseDraftGallery } from './EnterpriseDraftGallery'
 import { EnterpriseGallery } from './EnterpriseGallery'
+import { CheckIcon } from 'lucide-react'
+import { getSdgMeta } from '@/lib/sdg'
 import { ConfirmDialog } from '@/features/admin/shared/ConfirmDialog'
 import { deleteEnterprise, getAdminEnterprise, getDirectoryMeta, saveEnterprise } from '@/lib/api'
 import { slugify } from '@/lib/slug'
@@ -474,8 +476,11 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								<FormItem>
 									<FormLabel>Sürdürülebilir Kalkınma Amaçları</FormLabel>
 									<FormControl>
-										<div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-9">
+										<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 											{meta!.sdgs.map((sdg) => {
+												const meta = getSdgMeta(sdg.id)
+												const Icon = meta?.icon
+												const color = meta?.color ?? sdg.color
 												const selected = field.value.includes(sdg.id)
 												return (
 													<button
@@ -483,25 +488,43 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 														key={sdg.id}
 														onClick={() => {
 															if (selected) {
-																field.onChange(field.value.filter((v) => v !== sdg.id))
+																field.onChange(
+																	field.value.filter((v) => v !== sdg.id),
+																)
 															} else {
 																field.onChange([...field.value, sdg.id])
 															}
 														}}
 														title={sdg.name}
 														className={cn(
-															'group flex aspect-square items-center justify-center rounded-md border text-base font-semibold transition',
-															selected
-																? 'text-white shadow-sm'
-																: 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground',
+															'group flex items-center gap-3 rounded-lg border bg-background p-2.5 text-left transition hover:border-primary/40',
+															selected && 'border-primary/60 bg-primary/5',
 														)}
-														style={
-															selected
-																? { background: sdg.color, borderColor: sdg.color }
-																: undefined
-														}
 													>
-														{sdg.id}
+														<span
+															className="flex size-9 shrink-0 items-center justify-center rounded-md text-white"
+															style={{ background: color }}
+														>
+															{Icon ? <Icon className="size-4" strokeWidth={2.4} /> : null}
+														</span>
+														<span className="flex flex-1 flex-col gap-0.5">
+															<span className="text-[10px] font-bold tracking-wider text-muted-foreground tabular-nums">
+																SKA {sdg.id}
+															</span>
+															<span className="text-sm font-medium leading-tight">
+																{sdg.name}
+															</span>
+														</span>
+														<span
+															className={cn(
+																'flex size-5 shrink-0 items-center justify-center rounded-full border transition',
+																selected
+																	? 'border-primary bg-primary text-primary-foreground'
+																	: 'border-border',
+															)}
+														>
+															{selected && <CheckIcon className="size-3" />}
+														</span>
 													</button>
 												)
 											})}
