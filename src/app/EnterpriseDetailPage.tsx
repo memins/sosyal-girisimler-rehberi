@@ -44,6 +44,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { ErrorBlock, RouteFallback } from '@/components/StateBlock'
 import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
+import { GalleryLightbox } from '@/features/directory/GalleryLightbox'
 
 const SAVED_KEY = 'sgr:saved'
 
@@ -52,6 +53,7 @@ export function EnterpriseDetailPage() {
 	const [enterprise, setEnterprise] = useState<EnterpriseDetail | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [saved, setSaved] = useState(false)
+	const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
 	useEffect(() => {
 		if (!slug) return
@@ -231,30 +233,39 @@ export function EnterpriseDetailPage() {
 						</h2>
 					</div>
 					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-						{enterprise.gallery.map((item) => (
-							<figure
+						{enterprise.gallery.map((item, index) => (
+							<button
 								key={item.key}
-								className="flex flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card"
+								type="button"
+								onClick={() => setLightboxIndex(index)}
+								className="group flex cursor-zoom-in flex-col overflow-hidden rounded-xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 							>
 								<div className="aspect-[4/3] overflow-hidden bg-secondary">
 									<img
 										src={`/api/media/${item.key}`}
 										alt={item.caption ?? enterprise.name}
-										className="size-full object-cover transition duration-500 hover:scale-105"
+										className="size-full object-cover transition duration-500 group-hover:scale-105"
 										loading="lazy"
 										decoding="async"
 									/>
 								</div>
 								{item.caption && (
-									<figcaption className="px-3 pb-3 text-xs leading-relaxed text-muted-foreground">
+									<span className="block px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
 										{item.caption}
-									</figcaption>
+									</span>
 								)}
-							</figure>
+							</button>
 						))}
 					</div>
 				</section>
 			)}
+
+			<GalleryLightbox
+				items={enterprise.gallery}
+				openIndex={lightboxIndex}
+				onClose={() => setLightboxIndex(null)}
+				fallbackAlt={enterprise.name}
+			/>
 
 			{enterprise.related.length > 0 && (
 				<section className="flex flex-col gap-6">
