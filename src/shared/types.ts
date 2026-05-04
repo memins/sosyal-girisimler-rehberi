@@ -193,6 +193,8 @@ export type CategoryWithCount = TaxonomyItem & {
 export type HomePayload = {
 	stats: SiteStats
 	featured: Array<EnterpriseSummary>
+	recent: Array<EnterpriseSummary>
+	popular: Array<EnterpriseSummary>
 	categories: Array<CategoryWithCount>
 	editorialLists: Array<EditorialList>
 }

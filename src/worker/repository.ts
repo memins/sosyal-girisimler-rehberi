@@ -136,22 +136,41 @@ export async function getDirectoryMeta(db: D1Database): Promise<DirectoryMeta> {
 }
 
 export async function getHomePayload(db: D1Database): Promise<HomePayload> {
-	const [stats, featuredRows, categories, editorialLists] = await Promise.all([
-		getSiteStats(db),
-		db
-			.prepare(
-				'SELECT * FROM enterprises WHERE status = ? AND is_featured = 1 ORDER BY updated_at DESC LIMIT 4',
-			)
-			.bind('published')
-			.all<EnterpriseRow>(),
-		listCategoriesWithCounts(db),
-		listEditorialLists(db, true),
+	const [stats, featuredRows, recentRows, popularRows, categories, editorialLists] =
+		await Promise.all([
+			getSiteStats(db),
+			db
+				.prepare(
+					'SELECT * FROM enterprises WHERE status = ? AND is_featured = 1 ORDER BY updated_at DESC LIMIT 4',
+				)
+				.bind('published')
+				.all<EnterpriseRow>(),
+			db
+				.prepare(
+					'SELECT * FROM enterprises WHERE status = ? ORDER BY created_at DESC LIMIT 6',
+				)
+				.bind('published')
+				.all<EnterpriseRow>(),
+			db
+				.prepare(
+					'SELECT * FROM enterprises WHERE status = ? AND view_count > 0 ORDER BY view_count DESC, updated_at DESC LIMIT 6',
+				)
+				.bind('published')
+				.all<EnterpriseRow>(),
+			listCategoriesWithCounts(db),
+			listEditorialLists(db, true),
+		])
+	const [featured, recent, popular] = await Promise.all([
+		mapEnterpriseSummaries(db, featuredRows.results),
+		mapEnterpriseSummaries(db, recentRows.results),
+		mapEnterpriseSummaries(db, popularRows.results),
 	])
-	const featured = await mapEnterpriseSummaries(db, featuredRows.results)
 
 	return {
 		stats,
 		featured,
+		recent,
+		popular,
 		categories,
 		editorialLists,
 	}
@@ -295,6 +314,17 @@ export async function getEnterpriseDetailBySlug(
 ): Promise<EnterpriseDetail | null> {
 	const enterprise = await getEnterpriseBySlug(db, slug)
 	if (!enterprise) return null
+
+	// Best-effort view count increment. Fire-and-forget — if it fails, the
+	// detail response still goes out.
+	try {
+		await db
+			.prepare('UPDATE enterprises SET view_count = view_count + 1 WHERE id = ?')
+			.bind(enterprise.id)
+			.run()
+	} catch {
+		// ignore
+	}
 
 	const related = await listRelatedEnterprises(db, enterprise)
 	return { ...enterprise, related }

@@ -7,7 +7,12 @@ import {
 	EnterpriseCardLead,
 } from '@/features/directory/EnterpriseCard'
 import { getHome } from '@/lib/api'
-import type { CategoryWithCount, HomePayload, SiteStats } from '@/shared/types'
+import type {
+	CategoryWithCount,
+	EnterpriseSummary,
+	HomePayload,
+	SiteStats,
+} from '@/shared/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ErrorBlock, LoadingGrid } from '@/components/StateBlock'
@@ -316,6 +321,24 @@ function HomeContent({ data }: HomeContentProps) {
 				</section>
 			)}
 
+			{data.recent.length > 0 && (
+				<EnterpriseRowSection
+					eyebrow="Yeni"
+					title="Son eklenenler"
+					items={data.recent}
+					linkTo="/arama?sort=newest"
+				/>
+			)}
+
+			{data.popular.length > 0 && (
+				<EnterpriseRowSection
+					eyebrow="Popüler"
+					title="En çok görüntülenenler"
+					items={data.popular}
+					linkTo="/arama"
+				/>
+			)}
+
 			<section className="flex flex-col gap-8">
 				<div className="flex flex-col gap-2">
 					<span className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
@@ -332,6 +355,39 @@ function HomeContent({ data }: HomeContentProps) {
 				</div>
 			</section>
 		</>
+	)
+}
+
+interface EnterpriseRowSectionProps {
+	eyebrow: string
+	title: string
+	items: ReadonlyArray<EnterpriseSummary>
+	linkTo: string
+}
+
+function EnterpriseRowSection({ eyebrow, title, items, linkTo }: EnterpriseRowSectionProps) {
+	return (
+		<section className="flex flex-col gap-6">
+			<div className="flex items-end justify-between gap-4">
+				<div className="flex flex-col gap-2">
+					<span className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+						{eyebrow}
+					</span>
+					<h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h2>
+				</div>
+				<Button asChild variant="ghost" size="sm">
+					<Link to={linkTo}>
+						Tümünü gör
+						<ArrowRightIcon className="size-4" />
+					</Link>
+				</Button>
+			</div>
+			<div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+				{items.slice(0, 6).map((enterprise) => (
+					<EnterpriseCard key={enterprise.id} enterprise={enterprise} />
+				))}
+			</div>
+		</section>
 	)
 }
 
