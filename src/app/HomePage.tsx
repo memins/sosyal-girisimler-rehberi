@@ -321,7 +321,7 @@ function HomeContent({ data }: HomeContentProps) {
 				</section>
 			)}
 
-			{data.recent.length > 0 && (
+			{data.recent && data.recent.length > 0 && (
 				<EnterpriseRowSection
 					eyebrow="Yeni"
 					title="Son eklenenler"
@@ -330,7 +330,7 @@ function HomeContent({ data }: HomeContentProps) {
 				/>
 			)}
 
-			{data.popular.length > 0 && (
+			{data.popular && data.popular.length > 0 && (
 				<EnterpriseRowSection
 					eyebrow="Popüler"
 					title="En çok görüntülenenler"
