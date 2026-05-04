@@ -193,13 +193,13 @@ export function EnterpriseDetailPage() {
 					<DetailSection
 						accent="bg-destructive/15 text-destructive"
 						icon={AlertCircleIcon}
-						title="Gündem"
+						title="Çalışma alanı"
 						body={enterprise.problem}
 					/>
 					<DetailSection
 						accent="bg-warning/20 text-warning"
 						icon={LightbulbIcon}
-						title="Çözüm"
+						title="Çözüm yöntemi"
 						body={enterprise.solution}
 					/>
 					<DetailSection

@@ -29,8 +29,8 @@ export const enterpriseFormSchema = z.object({
 		.string()
 		.trim()
 		.min(20, 'Kısa açıklama en az 20 karakter olmalı.'),
-	problem: z.string().trim().min(1, 'Gündem alanı gerekli.'),
-	solution: z.string().trim().min(1, 'Çözüm alanı gerekli.'),
+	problem: z.string().trim().min(1, 'Çalışma alanı gerekli.'),
+	solution: z.string().trim().min(1, 'Çözüm yöntemi gerekli.'),
 	impact: z.string().trim().min(1, 'Sosyal etki alanı gerekli.'),
 	longContent: z.string().optional().or(z.literal('')),
 	websiteUrl: optionalUrl,

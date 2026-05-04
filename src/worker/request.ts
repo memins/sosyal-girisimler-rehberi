@@ -131,8 +131,8 @@ export function validateEnterpriseInput(input: EnterpriseInput): ValidationResul
 		20,
 		'Kısa açıklama en az 20 karakter olmalı.',
 	)
-	requireText(errors, 'problem', readString(input.problem), 'Gündem alanı gerekli.')
-	requireText(errors, 'solution', readString(input.solution), 'Çözüm alanı gerekli.')
+	requireText(errors, 'problem', readString(input.problem), 'Çalışma alanı gerekli.')
+	requireText(errors, 'solution', readString(input.solution), 'Çözüm yöntemi gerekli.')
 	requireText(errors, 'impact', readString(input.impact), 'Sosyal etki alanı gerekli.')
 	requireSafeUrl(errors, 'websiteUrl', readString(input.websiteUrl))
 	requireSafeUrl(errors, 'instagramUrl', readString(input.instagramUrl))

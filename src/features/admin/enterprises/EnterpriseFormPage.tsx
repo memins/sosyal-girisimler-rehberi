@@ -204,8 +204,8 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 			name: 'Girişim adı',
 			slug: 'Slug',
 			shortDescription: 'Kısa açıklama',
-			problem: 'Gündem',
-			solution: 'Çözüm',
+			problem: 'Çalışma alanı',
+			solution: 'Çözüm yöntemi',
 			impact: 'Sosyal etki',
 			websiteUrl: 'Web sitesi',
 			instagramUrl: 'Instagram',
@@ -336,7 +336,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 							name="problem"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Gündem (Problem)</FormLabel>
+									<FormLabel>Çalışma alanı</FormLabel>
 									<FormControl>
 										<Textarea rows={4} {...field} />
 									</FormControl>
@@ -349,7 +349,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 							name="solution"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Çözüm</FormLabel>
+									<FormLabel>Çözüm yöntemi</FormLabel>
 									<FormControl>
 										<Textarea rows={4} {...field} />
 									</FormControl>
