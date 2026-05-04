@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2Icon, SaveIcon } from 'lucide-react'
+import { Loader2Icon, SaveIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -34,7 +34,8 @@ import {
 	type EnterpriseFormValues,
 } from '@/features/admin/schemas/enterprise'
 import { EnterpriseGallery } from './EnterpriseGallery'
-import { getAdminEnterprise, getDirectoryMeta, saveEnterprise } from '@/lib/api'
+import { ConfirmDialog } from '@/features/admin/shared/ConfirmDialog'
+import { deleteEnterprise, getAdminEnterprise, getDirectoryMeta, saveEnterprise } from '@/lib/api'
 import { slugify } from '@/lib/slug'
 import { cn } from '@/lib/utils'
 import type { DirectoryMeta, Enterprise } from '@/shared/types'
@@ -71,6 +72,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 	const [error, setError] = useState<string | null>(null)
 	const [enterprise, setEnterprise] = useState<Enterprise | null>(null)
 	const [slugTouched, setSlugTouched] = useState(false)
+	const [confirmDelete, setConfirmDelete] = useState(false)
 
 	useEffect(() => {
 		getDirectoryMeta()
@@ -183,6 +185,17 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 			}
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Kaydedilemedi.')
+		}
+	}
+
+	async function handleDelete() {
+		if (!enterprise) return
+		try {
+			await deleteEnterprise(enterprise.id)
+			toast.success('Girişim silindi.')
+			navigate('/admin/enterprises')
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Silinemedi.')
 		}
 	}
 
@@ -607,6 +620,31 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 						</div>
 					</Section>
 
+					{mode === 'edit' && enterprise && (
+						<section className="flex flex-col gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-5">
+							<div className="flex flex-col gap-1">
+								<h2 className="text-sm font-semibold tracking-tight text-destructive">
+									Tehlikeli alan
+								</h2>
+								<p className="text-xs text-muted-foreground">
+									Geri alınamaz. Galeri görselleri ve tüm ilişkiler kalıcı olarak silinir.
+								</p>
+							</div>
+							<div className="flex items-center justify-between gap-3">
+								<p className="text-sm">Bu girişimi rehberden tamamen kaldır.</p>
+								<Button
+									type="button"
+									variant="outline"
+									className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+									onClick={() => setConfirmDelete(true)}
+								>
+									<Trash2Icon />
+									Sil
+								</Button>
+							</div>
+						</section>
+					)}
+
 					<div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t border-border bg-background/90 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
 						<Button asChild variant="ghost" type="button">
 							<Link to="/admin/enterprises">İptal</Link>
@@ -627,6 +665,16 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 					</div>
 				</form>
 			</Form>
+
+			<ConfirmDialog
+				open={confirmDelete}
+				onOpenChange={setConfirmDelete}
+				title={`${enterprise?.name ?? 'Girişim'} silinsin mi?`}
+				description="Bu işlem geri alınamaz. Galeri görselleri, kategori ilişkileri ve tüm bilgiler kalıcı olarak silinecek."
+				confirmLabel="Evet, sil"
+				variant="destructive"
+				onConfirm={handleDelete}
+			/>
 		</div>
 	)
 }

@@ -33,6 +33,7 @@ import {
 	approveSubmission,
 	createSubmission,
 	createTaxonomyItem,
+	deleteEnterprise,
 	deleteEnterpriseMedia,
 	deleteTaxonomyItem,
 	getDirectoryMeta,
@@ -344,6 +345,16 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 			return apiError('not_found', 'Girişim bulunamadı.', 404)
 		}
 		return json(enterprise)
+	}
+
+	if (request.method === 'DELETE' && adminEnterpriseMatch) {
+		try {
+			await deleteEnterprise(env.DB, decodeURIComponent(adminEnterpriseMatch[1]))
+			await env.CACHE.delete('home:v1')
+			return json({ ok: true })
+		} catch (error) {
+			return apiError('not_found', errorMessage(error), 404)
+		}
 	}
 
 	if (request.method === 'POST' && pathname === '/api/admin/enterprises') {

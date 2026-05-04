@@ -106,6 +106,14 @@ export async function saveEnterprise(input: UpsertEnterpriseInput): Promise<Ente
 	return apiPost('/api/admin/enterprises', input)
 }
 
+export async function deleteEnterprise(id: string): Promise<{ ok: true }> {
+	const response = await fetch(`/api/admin/enterprises/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+		credentials: 'include',
+	})
+	return parseResponse(response)
+}
+
 export async function listSubmissions(): Promise<Array<Submission>> {
 	return apiGet('/api/admin/submissions')
 }

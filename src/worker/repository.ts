@@ -991,6 +991,20 @@ export async function getEnterpriseById(db: D1Database, id: string): Promise<Ent
 	return mapEnterpriseRow(row, relations)
 }
 
+export async function deleteEnterprise(db: D1Database, id: string): Promise<void> {
+	const row = await db
+		.prepare('SELECT id FROM enterprises WHERE id = ? LIMIT 1')
+		.bind(id)
+		.first<{ id: string }>()
+	if (!row) {
+		throw new Error('Girişim bulunamadı.')
+	}
+	// enterprise_categories / audiences / business_models / countries / sdgs /
+	// enterprise_media all reference enterprises with ON DELETE CASCADE.
+	// submissions.enterprise_id is ON DELETE SET NULL.
+	await db.prepare('DELETE FROM enterprises WHERE id = ?').bind(id).run()
+}
+
 function mapTaxonomyRow(row: TaxonomyRow): TaxonomyItem {
 	return {
 		id: row.id,
