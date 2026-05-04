@@ -44,6 +44,14 @@ export const enterpriseFormSchema = z.object({
 	businessModelIds: z.array(z.string()),
 	countryCodes: z.array(z.string()).min(1, 'En az bir ülke seçin.'),
 	sdgIds: z.array(z.number().int().min(1).max(17)),
+	gallery: z
+		.array(
+			z.object({
+				key: z.string(),
+				caption: z.string().nullable().optional(),
+			}),
+		)
+		.optional(),
 })
 
 export type EnterpriseFormValues = z.input<typeof enterpriseFormSchema>

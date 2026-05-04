@@ -216,6 +216,11 @@ export type SubmissionInput = {
 	solution?: string
 }
 
+export type DraftGalleryItem = {
+	key: string
+	caption?: string | null
+}
+
 export type UpsertEnterpriseInput = {
 	id?: string
 	name: string
@@ -236,6 +241,7 @@ export type UpsertEnterpriseInput = {
 	businessModelIds: Array<string>
 	countryCodes: Array<string>
 	sdgIds: Array<number>
+	gallery?: Array<DraftGalleryItem>
 }
 
 export type UpsertEditorialListInput = {

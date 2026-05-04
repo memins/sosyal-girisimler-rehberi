@@ -439,6 +439,26 @@ export async function upsertEnterprise(
 		.run()
 
 	await replaceEnterpriseRelations(db, id, input)
+
+	// Initial gallery — only on first creation. Edit mode has its own
+	// per-item endpoints via EnterpriseGallery and ignores this field.
+	if (!input.id && input.gallery && input.gallery.length > 0) {
+		const inserts = input.gallery
+			.filter((item) => typeof item.key === 'string' && item.key.length > 0)
+			.map((item, index) =>
+				db
+					.prepare(
+						`INSERT INTO enterprise_media (enterprise_id, media_key, caption, sort_order)
+							VALUES (?, ?, ?, ?)
+							ON CONFLICT(enterprise_id, media_key) DO NOTHING`,
+					)
+					.bind(id, item.key, item.caption?.trim() || null, index),
+			)
+		if (inserts.length > 0) {
+			await db.batch(inserts)
+		}
+	}
+
 	const enterprise = await getEnterpriseBySlug(db, input.slug)
 
 	if (!enterprise) {

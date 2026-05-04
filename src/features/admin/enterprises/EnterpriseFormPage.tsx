@@ -33,6 +33,7 @@ import {
 	enterpriseFormSchema,
 	type EnterpriseFormValues,
 } from '@/features/admin/schemas/enterprise'
+import { EnterpriseDraftGallery } from './EnterpriseDraftGallery'
 import { EnterpriseGallery } from './EnterpriseGallery'
 import { ConfirmDialog } from '@/features/admin/shared/ConfirmDialog'
 import { deleteEnterprise, getAdminEnterprise, getDirectoryMeta, saveEnterprise } from '@/lib/api'
@@ -63,6 +64,7 @@ const emptyValues: EnterpriseFormValues = {
 	businessModelIds: [],
 	countryCodes: [],
 	sdgIds: [],
+	gallery: [],
 }
 
 export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
@@ -176,6 +178,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 				businessModelIds: parsed.businessModelIds,
 				countryCodes: parsed.countryCodes,
 				sdgIds: parsed.sdgIds,
+				gallery: mode === 'create' ? parsed.gallery : undefined,
 			})
 			toast.success('Girişim kaydedildi.')
 			if (mode === 'create') {
@@ -567,9 +570,21 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 							{mode === 'edit' && enterprise ? (
 								<EnterpriseGallery enterpriseId={enterprise.id} />
 							) : (
-								<div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground">
-									Galeri ekleyebilmek için önce girişimi kaydet. Kaydettikten sonra bu alana fotoğraf yükleyebilirsin.
-								</div>
+								<FormField
+									control={form.control}
+									name="gallery"
+									render={({ field }) => (
+										<FormItem>
+											<FormControl>
+												<EnterpriseDraftGallery
+													value={field.value ?? []}
+													onChange={field.onChange}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							)}
 						</div>
 					</Section>
