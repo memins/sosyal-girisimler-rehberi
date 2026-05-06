@@ -1,5 +1,5 @@
 import { Building2Icon, PlusIcon, SearchIcon, StarIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -25,9 +25,13 @@ const PAGE_SIZE = 20
 
 export function EnterprisesListPage() {
 	const [items, setItems] = useState<Array<EnterpriseSummary> | null>(null)
+	const [total, setTotal] = useState(0)
 	const [error, setError] = useState<string | null>(null)
+	const [searchInput, setSearchInput] = useState('')
 	const [search, setSearch] = useState('')
 	const [page, setPage] = useState(1)
+	const [loading, setLoading] = useState(false)
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
 	useTopbarActions(
 		<Button asChild size="sm">
@@ -38,32 +42,38 @@ export function EnterprisesListPage() {
 		</Button>,
 	)
 
+	// Debounce the search input → committed `search` value (backend query)
 	useEffect(() => {
-		listAdminEnterprises(new URLSearchParams({ pageSize: '60' }))
-			.then((res) => setItems(res.items))
+		if (debounceRef.current) clearTimeout(debounceRef.current)
+		debounceRef.current = setTimeout(() => {
+			setSearch(searchInput.trim())
+			setPage(1)
+		}, 250)
+		return () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current)
+		}
+	}, [searchInput])
+
+	// Fetch from API whenever committed search or page changes
+	useEffect(() => {
+		setLoading(true)
+		const params = new URLSearchParams()
+		if (search.length > 0) params.set('query', search)
+		params.set('page', String(page))
+		params.set('pageSize', String(PAGE_SIZE))
+		params.set('sort', 'name')
+		listAdminEnterprises(params)
+			.then((res) => {
+				setItems(res.items)
+				setTotal(res.total)
+				setError(null)
+			})
 			.catch((err: Error) => setError(err.message))
-	}, [])
-
-	const filtered = useMemo(() => {
-		if (!items) return null
-		const term = search.trim().toLocaleLowerCase('tr')
-		if (term.length === 0) return items
-		return items.filter(
-			(item) =>
-				item.name.toLocaleLowerCase('tr').includes(term) ||
-				item.slug.toLocaleLowerCase('tr').includes(term),
-		)
-	}, [items, search])
-
-	const total = filtered?.length ?? 0
-	const visible = filtered?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) ?? []
-
-	useEffect(() => {
-		setPage(1)
-	}, [search])
+			.finally(() => setLoading(false))
+	}, [search, page])
 
 	if (error) return <ErrorBlock message={error} />
-	if (!items) return <RouteFallback />
+	if (items === null) return <RouteFallback />
 
 	return (
 		<div className="flex flex-col gap-8">
@@ -74,14 +84,19 @@ export function EnterprisesListPage() {
 			/>
 
 			<div className="flex flex-col gap-4">
-				<div className="relative max-w-sm">
-					<SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						value={search}
-						onChange={(event) => setSearch(event.target.value)}
-						placeholder="İsim veya slug ile ara"
-						className="pl-9"
-					/>
+				<div className="flex items-center gap-3">
+					<div className="relative max-w-sm flex-1">
+						<SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+						<Input
+							value={searchInput}
+							onChange={(event) => setSearchInput(event.target.value)}
+							placeholder="İsim, slug, içerik ile ara"
+							className="pl-9"
+						/>
+					</div>
+					<span className="text-xs text-muted-foreground tabular-nums">
+						{total} sonuç{loading ? ' · yükleniyor…' : ''}
+					</span>
 				</div>
 
 				{total === 0 ? (
@@ -116,7 +131,7 @@ export function EnterprisesListPage() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{visible.map((enterprise) => (
+									{items.map((enterprise) => (
 										<TableRow key={enterprise.id}>
 											<TableCell>
 												<Avatar className="size-9 rounded-md">
@@ -191,7 +206,10 @@ export function EnterprisesListPage() {
 							page={page}
 							pageSize={PAGE_SIZE}
 							total={total}
-							onPageChange={setPage}
+							onPageChange={(next) => {
+								setPage(next)
+								window.scrollTo({ top: 0, behavior: 'smooth' })
+							}}
 							className="pt-4"
 						/>
 					</>
