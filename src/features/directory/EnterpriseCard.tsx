@@ -9,6 +9,7 @@ interface EnterpriseCardProps {
 
 export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
+	const primaryBusinessModel = enterprise.businessModels?.[0]
 
 	return (
 		<Link
@@ -53,6 +54,14 @@ export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
 									{category.name}
 								</Badge>
 							))}
+							{primaryBusinessModel && (
+								<Badge
+									variant="outline"
+									className="border-primary/40 bg-primary/10 text-primary"
+								>
+									{primaryBusinessModel.name}
+								</Badge>
+							)}
 						</div>
 					</div>
 					<ArrowUpRightIcon
@@ -70,6 +79,7 @@ export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
 
 export function EnterpriseCardLead({ enterprise }: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
+	const primaryBusinessModel = enterprise.businessModels?.[0]
 
 	return (
 		<Link
@@ -105,6 +115,14 @@ export function EnterpriseCardLead({ enterprise }: EnterpriseCardProps) {
 							{category.name}
 						</Badge>
 					))}
+					{primaryBusinessModel && (
+						<Badge
+							variant="outline"
+							className="border-primary/40 bg-primary/10 text-primary"
+						>
+							{primaryBusinessModel.name}
+						</Badge>
+					)}
 				</div>
 				<div className="flex items-start justify-between gap-3">
 					<h3 className="text-2xl font-semibold tracking-tight md:text-3xl">
@@ -125,6 +143,7 @@ export function EnterpriseCardLead({ enterprise }: EnterpriseCardProps) {
 
 export function EnterpriseCardCompact({ enterprise }: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
+	const primaryBusinessModel = enterprise.businessModels?.[0]
 
 	return (
 		<Link
@@ -160,6 +179,14 @@ export function EnterpriseCardCompact({ enterprise }: EnterpriseCardProps) {
 							{category.name}
 						</Badge>
 					))}
+					{primaryBusinessModel && (
+						<Badge
+							variant="outline"
+							className="border-primary/40 bg-primary/10 text-[10px] text-primary"
+						>
+							{primaryBusinessModel.name}
+						</Badge>
+					)}
 				</div>
 				<p className="line-clamp-2 text-xs text-muted-foreground">
 					{enterprise.shortDescription}

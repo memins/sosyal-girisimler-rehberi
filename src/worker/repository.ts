@@ -691,6 +691,8 @@ async function mapEnterpriseSummaries(
 			coverKey: coverFallback,
 			isFeatured: enterprise.isFeatured,
 			categories: enterprise.categories,
+			audiences: enterprise.audiences,
+			businessModels: enterprise.businessModels,
 			countries: enterprise.countries,
 			sdgs: enterprise.sdgs,
 		}

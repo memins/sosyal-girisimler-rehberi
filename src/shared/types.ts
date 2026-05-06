@@ -87,6 +87,8 @@ export type EnterpriseSummary = Pick<
 	| 'coverKey'
 	| 'isFeatured'
 	| 'categories'
+	| 'audiences'
+	| 'businessModels'
 	| 'countries'
 	| 'sdgs'
 >
