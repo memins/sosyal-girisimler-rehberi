@@ -223,7 +223,7 @@ export function EnterpriseDetailPage() {
 			</div>
 
 			{enterprise.gallery && enterprise.gallery.length > 0 && (
-				<section className="flex flex-col gap-6">
+				<section className="flex flex-col gap-6 border-t border-border pt-12">
 					<div className="flex flex-col gap-2">
 						<span className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
 							Galeri
@@ -268,7 +268,7 @@ export function EnterpriseDetailPage() {
 			/>
 
 			{enterprise.related.length > 0 && (
-				<section className="flex flex-col gap-6">
+				<section className="flex flex-col gap-6 border-t border-border pt-12">
 					<div className="flex items-end justify-between">
 						<div className="flex flex-col gap-2">
 							<span className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
