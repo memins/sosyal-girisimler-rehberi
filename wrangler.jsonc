@@ -5,6 +5,15 @@
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-04-29",
 	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"preview_urls": true,
+	// Custom domain configuration commented until the manually-created
+	// `sosyal.genclink.com` DNS record is removed from the Cloudflare
+	// dashboard. Re-enable once that's done — `npm run deploy` will then
+	// auto-create the proper Worker-bound CNAME.
+	// "routes": [
+	// 	{ "pattern": "sosyal.genclink.com", "custom_domain": true }
+	// ],
 	"assets": {
 		"directory": "./dist/client",
 		"binding": "ASSETS",
