@@ -768,7 +768,11 @@ async function renderEnterpriseHtml(
 	const title = `${enterprise.name} — ${SITE_NAME}`
 	const description = enterprise.shortDescription
 	const canonicalUrl = `${url.origin}/girisimler/${enterprise.slug}`
-	const imageKey = enterprise.coverKey ?? enterprise.logoKey
+	const imageKey =
+		enterprise.coverKey ??
+		enterprise.logoKey ??
+		enterprise.gallery[0]?.key ??
+		null
 	const imageUrl = imageKey
 		? `${url.origin}/api/media/${imageKey}`
 		: `${url.origin}/og-image.png`
