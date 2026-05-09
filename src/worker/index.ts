@@ -40,6 +40,7 @@ import {
 	deleteTaxonomyItem,
 	getDirectoryMeta,
 	getEnterpriseById,
+	getEnterpriseBySlug,
 	getEnterpriseDetailBySlug,
 	getHomePayload,
 	listEditSuggestions,
@@ -66,6 +67,21 @@ export default {
 
 			if (url.pathname.startsWith('/api/')) {
 				return await handleApiRequest(request, env, ctx, url)
+			}
+
+			// Per-enterprise SEO/social-share metadata: rewrite index.html
+			// OG/Twitter tags so previews are enterprise-specific.
+			const enterprisePageMatch = url.pathname.match(
+				/^\/girisimler\/([^/]+)\/?$/,
+			)
+			if (enterprisePageMatch && request.method === 'GET') {
+				const rewritten = await renderEnterpriseHtml(
+					request,
+					env,
+					url,
+					decodeURIComponent(enterprisePageMatch[1]),
+				)
+				if (rewritten) return rewritten
 			}
 
 			return await env.ASSETS.fetch(request)
@@ -717,4 +733,104 @@ async function getMedia(env: Env, key: string): Promise<Response> {
 	headers.set('etag', object.httpEtag)
 
 	return new Response(object.body, { headers })
+}
+
+const SITE_NAME = 'Sosyal Girişimler Rehberi'
+
+function escapeAttribute(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/"/g, '&quot;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+}
+
+async function renderEnterpriseHtml(
+	request: Request,
+	env: Env,
+	url: URL,
+	slug: string,
+): Promise<Response | null> {
+	const enterprise = await getEnterpriseBySlug(env.DB, slug)
+	if (!enterprise || enterprise.status !== 'published') {
+		// Let SPA handle 404 / unpublished — return null to fall through.
+		return null
+	}
+
+	const indexUrl = new URL('/', url).toString()
+	const indexResponse = await env.ASSETS.fetch(
+		new Request(indexUrl, {
+			headers: request.headers,
+		}),
+	)
+	if (!indexResponse.ok) return null
+
+	const title = `${enterprise.name} — ${SITE_NAME}`
+	const description = enterprise.shortDescription
+	const canonicalUrl = `${url.origin}/girisimler/${enterprise.slug}`
+	const imageKey = enterprise.coverKey ?? enterprise.logoKey
+	const imageUrl = imageKey
+		? `${url.origin}/api/media/${imageKey}`
+		: `${url.origin}/og-image.png`
+
+	const setMeta = (selector: string, content: string) => ({
+		element(el: Element) {
+			el.setAttribute('content', content)
+		},
+	})
+
+	const rewriter = new HTMLRewriter()
+		.on('title', {
+			element(el) {
+				el.setInnerContent(title)
+			},
+		})
+		.on('meta[name="description"]', setMeta('description', description))
+		.on('meta[property="og:type"]', setMeta('og:type', 'article'))
+		.on('meta[property="og:title"]', setMeta('og:title', title))
+		.on(
+			'meta[property="og:description"]',
+			setMeta('og:description', description),
+		)
+		.on('meta[property="og:url"]', setMeta('og:url', canonicalUrl))
+		.on('meta[property="og:image"]', setMeta('og:image', imageUrl))
+		.on(
+			'meta[property="og:image:alt"]',
+			setMeta('og:image:alt', `${enterprise.name} kapak görseli`),
+		)
+		.on('meta[name="twitter:title"]', setMeta('twitter:title', title))
+		.on(
+			'meta[name="twitter:description"]',
+			setMeta('twitter:description', description),
+		)
+		.on('meta[name="twitter:image"]', setMeta('twitter:image', imageUrl))
+		// Drop any image:width/height meta because we no longer guarantee 1200×630
+		// on per-enterprise covers; absent dimensions let crawlers auto-detect.
+		.on('meta[property="og:image:width"]', {
+			element(el) {
+				el.remove()
+			},
+		})
+		.on('meta[property="og:image:height"]', {
+			element(el) {
+				el.remove()
+			},
+		})
+		// Inject a canonical link so search engines treat this as the source URL.
+		.on('head', {
+			element(el) {
+				el.append(`<link rel="canonical" href="${escapeAttribute(canonicalUrl)}">`, {
+					html: true,
+				})
+			},
+		})
+
+	const transformed = rewriter.transform(indexResponse)
+	const headers = new Headers(transformed.headers)
+	headers.set('content-type', 'text/html; charset=utf-8')
+	headers.set('cache-control', 'public, max-age=0, must-revalidate')
+	return new Response(transformed.body, {
+		status: 200,
+		headers,
+	})
 }
