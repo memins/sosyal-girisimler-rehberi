@@ -23,5 +23,5 @@
 		}
 	},
 	"include": ["src"],
-	"exclude": ["src/worker", "src/db"]
+	"exclude": ["src/worker", "src/db", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

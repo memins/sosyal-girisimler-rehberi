@@ -59,11 +59,14 @@ import {
 } from './repository'
 import type { TaxonomyType, UpdateTaxonomyInput, UpsertTaxonomyInput } from '@/shared/types'
 import { apiError, json, readJsonBody } from './responses'
+import { buildRobotsTxt, buildSitemapXml, type SitemapEntry } from './seo'
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		try {
 			const url = new URL(request.url)
+			const seoResponse = await handleSeoAssetRequest(request, env, url)
+			if (seoResponse) return seoResponse
 
 			if (url.pathname.startsWith('/api/')) {
 				return await handleApiRequest(request, env, ctx, url)
@@ -92,6 +95,71 @@ export default {
 		}
 	},
 } satisfies ExportedHandler<Env>
+
+async function handleSeoAssetRequest(
+	request: Request,
+	env: Env,
+	url: URL,
+): Promise<Response | null> {
+	if (url.pathname !== '/robots.txt' && url.pathname !== '/sitemap.xml') {
+		return null
+	}
+
+	if (request.method !== 'GET' && request.method !== 'HEAD') {
+		return new Response(null, {
+			status: 405,
+			headers: {
+				allow: 'GET, HEAD',
+			},
+		})
+	}
+
+	if (url.pathname === '/robots.txt') {
+		return seoTextResponse(buildRobotsTxt(), 'text/plain; charset=utf-8', request.method)
+	}
+
+	const entries = await listPublishedEnterpriseSitemapEntries(env)
+	return seoTextResponse(
+		buildSitemapXml(entries),
+		'application/xml; charset=utf-8',
+		request.method,
+	)
+}
+
+async function listPublishedEnterpriseSitemapEntries(env: Env): Promise<Array<SitemapEntry>> {
+	try {
+		const rows = await env.DB.prepare(
+			'SELECT slug, updated_at FROM enterprises WHERE status = ? ORDER BY updated_at DESC',
+		)
+			.bind('published')
+			.all<{ slug: string; updated_at: string }>()
+
+		return rows.results.map((row) => ({
+			path: `/girisimler/${row.slug}`,
+			lastmod: row.updated_at,
+		}))
+	} catch (error) {
+		console.error(
+			JSON.stringify({
+				level: 'error',
+				message: 'Failed to build dynamic sitemap entries',
+				error: String(error),
+			}),
+		)
+
+		return []
+	}
+}
+
+function seoTextResponse(body: string, contentType: string, method: string): Response {
+	return new Response(method === 'HEAD' ? null : body, {
+		status: 200,
+		headers: {
+			'content-type': contentType,
+			'cache-control': 'public, max-age=3600',
+		},
+	})
+}
 
 async function handleApiRequest(
 	request: Request,
@@ -737,14 +805,6 @@ async function getMedia(env: Env, key: string): Promise<Response> {
 
 const SITE_NAME = 'Sosyal Girişimler Rehberi'
 
-function escapeAttribute(value: string): string {
-	return value
-		.replace(/&/g, '&amp;')
-		.replace(/"/g, '&quot;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-}
-
 async function renderEnterpriseHtml(
 	request: Request,
 	env: Env,
@@ -808,6 +868,11 @@ async function renderEnterpriseHtml(
 			setMeta('twitter:description', description),
 		)
 		.on('meta[name="twitter:image"]', setMeta('twitter:image', imageUrl))
+		.on('link[rel="canonical"]', {
+			element(el) {
+				el.setAttribute('href', canonicalUrl)
+			},
+		})
 		// Drop any image:width/height meta because we no longer guarantee 1200×630
 		// on per-enterprise covers; absent dimensions let crawlers auto-detect.
 		.on('meta[property="og:image:width"]', {
@@ -818,14 +883,6 @@ async function renderEnterpriseHtml(
 		.on('meta[property="og:image:height"]', {
 			element(el) {
 				el.remove()
-			},
-		})
-		// Inject a canonical link so search engines treat this as the source URL.
-		.on('head', {
-			element(el) {
-				el.append(`<link rel="canonical" href="${escapeAttribute(canonicalUrl)}">`, {
-					html: true,
-				})
 			},
 		})
 
