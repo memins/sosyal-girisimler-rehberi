@@ -217,6 +217,41 @@ export function EnterpriseDetailPage() {
 										LinkedIn
 									</a>
 								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`}
+										target="_blank"
+										rel="noreferrer"
+									>
+										Telegram
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+										target="_blank"
+										rel="noreferrer"
+									>
+										Facebook
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => {
+										void navigator.clipboard
+											.writeText(`${shareText} ${shareUrl}`)
+											.then(() => toast.success('Discord için metin kopyalandı'))
+											.catch(() => toast.error('Metin kopyalanamadı'))
+									}}
+								>
+									Discord
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`mailto:?subject=${encodeURIComponent(enterprise.name)}&body=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`}
+									>
+										E-posta
+									</a>
+								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
