@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildRobotsTxt, buildSitemapXml } from './seo'
+import { buildRecentEnterprisesRss, buildRobotsTxt, buildSitemapXml } from './seo'
 
 describe('buildRobotsTxt', () => {
 	it('allows public crawling, blocks private surfaces, and links the canonical sitemap', () => {
@@ -17,6 +17,25 @@ describe('buildRobotsTxt', () => {
 			].join('\n'),
 		)
 		expect(robots).not.toContain('<html')
+	})
+})
+
+describe('buildRecentEnterprisesRss', () => {
+	it('lists recently added enterprises as an RSS channel', () => {
+		const rss = buildRecentEnterprisesRss([
+			{
+				title: 'Fazla',
+				path: '/girisimler/fazla',
+				description: 'Gıda israfını azaltır.',
+				publishedAt: '2026-09-20T10:00:00.000Z',
+			},
+		])
+
+		expect(rss).toContain('<rss version="2.0">')
+		expect(rss).toContain('<title>Fazla</title>')
+		expect(rss).toContain('<link>https://sosyal.genclink.com/girisimler/fazla</link>')
+		expect(rss).toContain('<description>Gıda israfını azaltır.</description>')
+		expect(rss).toContain('<pubDate>Sun, 20 Sep 2026')
 	})
 })
 

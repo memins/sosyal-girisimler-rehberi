@@ -60,7 +60,7 @@ import {
 } from './repository'
 import type { TaxonomyType, UpdateTaxonomyInput, UpsertTaxonomyInput } from '@/shared/types'
 import { apiError, json, readJsonBody } from './responses'
-import { buildRobotsTxt, buildSitemapXml, type SitemapEntry } from './seo'
+import { buildRecentEnterprisesRss, buildRobotsTxt, buildSitemapXml, type SitemapEntry } from './seo'
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -102,7 +102,11 @@ async function handleSeoAssetRequest(
 	env: Env,
 	url: URL,
 ): Promise<Response | null> {
-	if (url.pathname !== '/robots.txt' && url.pathname !== '/sitemap.xml') {
+	if (
+		url.pathname !== '/robots.txt' &&
+		url.pathname !== '/sitemap.xml' &&
+		url.pathname !== '/feed.xml'
+	) {
 		return null
 	}
 
@@ -117,6 +121,14 @@ async function handleSeoAssetRequest(
 
 	if (url.pathname === '/robots.txt') {
 		return seoTextResponse(buildRobotsTxt(), 'text/plain; charset=utf-8', request.method)
+	}
+
+	if (url.pathname === '/feed.xml') {
+		return seoTextResponse(
+			buildRecentEnterprisesRss(await listRecentEnterpriseRssItems(env)),
+			'application/rss+xml; charset=utf-8',
+			request.method,
+		)
 	}
 
 	const entries = await listPublishedEnterpriseSitemapEntries(env)
@@ -148,6 +160,41 @@ async function listPublishedEnterpriseSitemapEntries(env: Env): Promise<Array<Si
 			}),
 		)
 
+		return []
+	}
+}
+
+async function listRecentEnterpriseRssItems(env: Env) {
+	try {
+		const rows = await env.DB.prepare(
+			`SELECT name, slug, short_description, created_at
+				FROM enterprises
+				WHERE status = ?
+				ORDER BY created_at DESC
+				LIMIT 30`,
+		)
+			.bind('published')
+			.all<{
+				name: string
+				slug: string
+				short_description: string
+				created_at: string
+			}>()
+
+		return rows.results.map((row) => ({
+			title: row.name,
+			path: `/girisimler/${row.slug}`,
+			description: row.short_description,
+			publishedAt: row.created_at,
+		}))
+	} catch (error) {
+		console.error(
+			JSON.stringify({
+				level: 'error',
+				message: 'Failed to build recent enterprise RSS',
+				error: String(error),
+			}),
+		)
 		return []
 	}
 }

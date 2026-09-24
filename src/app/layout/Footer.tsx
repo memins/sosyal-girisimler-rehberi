@@ -9,6 +9,7 @@ const sections = [
 		links: [
 			{ label: 'Ana sayfa', to: '/' },
 			{ label: 'Rehber', to: '/arama' },
+			{ label: 'Son eklenenler (RSS)', to: '/feed.xml', external: true },
 		],
 	},
 	{
@@ -58,12 +59,21 @@ export function Footer() {
 							<ul className="flex flex-col gap-2">
 								{section.links.map((link) => (
 									<li key={link.to}>
-										<Link
-											to={link.to}
-											className="text-sm text-foreground/80 transition hover:text-primary"
-										>
-											{link.label}
-										</Link>
+										{link.external ? (
+											<a
+												href={link.to}
+												className="text-sm text-foreground/80 transition hover:text-primary"
+											>
+												{link.label}
+											</a>
+										) : (
+											<Link
+												to={link.to}
+												className="text-sm text-foreground/80 transition hover:text-primary"
+											>
+												{link.label}
+											</Link>
+										)}
 									</li>
 								))}
 							</ul>
