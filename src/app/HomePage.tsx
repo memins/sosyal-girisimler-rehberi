@@ -295,22 +295,31 @@ function HomeContent({ data }: HomeContentProps) {
 							</Link>
 						</Button>
 					</div>
-					{lead && compact.length > 0 ? (
-						<div className="grid gap-4 lg:grid-cols-2">
-							<EnterpriseCardLead enterprise={lead} />
-							<div className="flex flex-col gap-3">
-								{compact.map((item) => (
-									<EnterpriseCardCompact key={item.id} enterprise={item} />
+					<div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2 lg:hidden">
+						{data.featured.map((enterprise) => (
+							<div key={enterprise.id} className="w-[85%] shrink-0 snap-center">
+								<EnterpriseCard enterprise={enterprise} />
+							</div>
+						))}
+					</div>
+					<div className="hidden lg:block">
+						{lead && compact.length > 0 ? (
+							<div className="grid gap-4 lg:grid-cols-2">
+								<EnterpriseCardLead enterprise={lead} />
+								<div className="flex flex-col gap-3">
+									{compact.map((item) => (
+										<EnterpriseCardCompact key={item.id} enterprise={item} />
+									))}
+								</div>
+							</div>
+						) : (
+							<div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+								{data.featured.map((enterprise) => (
+									<EnterpriseCard key={enterprise.id} enterprise={enterprise} />
 								))}
 							</div>
-						</div>
-					) : (
-						<div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-							{data.featured.map((enterprise) => (
-								<EnterpriseCard key={enterprise.id} enterprise={enterprise} />
-							))}
-						</div>
-					)}
+						)}
+					</div>
 				</section>
 			)}
 
