@@ -24,6 +24,7 @@ import type {
 	UpsertEnterpriseInput,
 	UpsertTaxonomyInput,
 } from '@/shared/types'
+import { typoLikeNeedles } from '@/lib/search-query'
 import type { EnterpriseFilters } from './request'
 
 type EnterpriseRow = {
@@ -235,13 +236,16 @@ export async function listEnterprises(
 	}
 
 	if (filters.query.length > 0) {
-		const normalized = turkishFold(filters.query)
-		const queryParam = `%${normalized}%`
+		const needles = typoLikeNeedles(turkishFold(filters.query))
 		const fields = ['name', 'short_description', 'problem', 'solution']
-		conditions.push(
-			`(${fields.map((f) => `${turkishFoldSql(f)} LIKE ?`).join(' OR ')})`,
+		const groups = needles.map(
+			() => `(${fields.map((field) => `${turkishFoldSql(field)} LIKE ?`).join(' OR ')})`,
 		)
-		params.push(queryParam, queryParam, queryParam, queryParam)
+		conditions.push(`(${groups.join(' OR ')})`)
+		for (const needle of needles) {
+			const queryParam = `%${needle}%`
+			params.push(queryParam, queryParam, queryParam, queryParam)
+		}
 	}
 
 	addExistsFilter(conditions, params, filters.categories, 'enterprise_categories', 'category_id')
