@@ -332,7 +332,63 @@ export async function getEnterpriseDetailBySlug(
 		getPublishedNeighbor(db, enterprise, 'previous'),
 		getPublishedNeighbor(db, enterprise, 'next'),
 	])
-	return { ...enterprise, related, previous, next }
+	return { ...enterprise, related, previous, next, supportCount: 0, supported: false }
+}
+
+export async function getEnterpriseSupport(
+	db: D1Database,
+	enterpriseId: string,
+	voterKey: string,
+): Promise<{ supportCount: number; supported: boolean }> {
+	const [countRow, voteRow] = await Promise.all([
+		db
+			.prepare('SELECT COUNT(*) as count FROM enterprise_votes WHERE enterprise_id = ?')
+			.bind(enterpriseId)
+			.first<{ count: number }>(),
+		db
+			.prepare(
+				'SELECT 1 as voted FROM enterprise_votes WHERE enterprise_id = ? AND voter_key = ? LIMIT 1',
+			)
+			.bind(enterpriseId, voterKey)
+			.first<{ voted: number }>(),
+	])
+
+	return {
+		supportCount: Number(countRow?.count ?? 0),
+		supported: Boolean(voteRow),
+	}
+}
+
+export async function toggleEnterpriseSupport(
+	db: D1Database,
+	slug: string,
+	voterKey: string,
+): Promise<{ supportCount: number; supported: boolean }> {
+	const enterprise = await getEnterpriseBySlug(db, slug)
+	if (!enterprise || enterprise.status !== 'published') {
+		throw new Error('Girişim bulunamadı.')
+	}
+
+	const existing = await db
+		.prepare(
+			'SELECT 1 as voted FROM enterprise_votes WHERE enterprise_id = ? AND voter_key = ? LIMIT 1',
+		)
+		.bind(enterprise.id, voterKey)
+		.first<{ voted: number }>()
+
+	if (existing) {
+		await db
+			.prepare('DELETE FROM enterprise_votes WHERE enterprise_id = ? AND voter_key = ?')
+			.bind(enterprise.id, voterKey)
+			.run()
+	} else {
+		await db
+			.prepare('INSERT INTO enterprise_votes (enterprise_id, voter_key) VALUES (?, ?)')
+			.bind(enterprise.id, voterKey)
+			.run()
+	}
+
+	return getEnterpriseSupport(db, enterprise.id, voterKey)
 }
 
 async function getPublishedNeighbor(

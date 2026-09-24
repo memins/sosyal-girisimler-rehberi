@@ -102,6 +102,8 @@ export type EnterpriseDetail = Enterprise & {
 	related: Array<EnterpriseSummary>
 	previous: EnterpriseNeighbor | null
 	next: EnterpriseNeighbor | null
+	supportCount: number
+	supported: boolean
 }
 
 export type EditSuggestionStatus = 'pending' | 'applied' | 'rejected'

@@ -5,6 +5,7 @@ import {
 	AtSignIcon,
 	ExternalLinkIcon,
 	HeartIcon,
+	ThumbsUpIcon,
 	LightbulbIcon,
 	LinkIcon,
 	Loader2Icon,
@@ -15,7 +16,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getEnterprise, submitEditSuggestion } from '@/lib/api'
+import { getEnterprise, submitEditSuggestion, toggleEnterpriseSupport } from '@/lib/api'
 import type { EnterpriseDetail } from '@/shared/types'
 import {
 	Dialog,
@@ -55,6 +56,9 @@ export function EnterpriseDetailPage() {
 	const [enterprise, setEnterprise] = useState<EnterpriseDetail | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [saved, setSaved] = useState(false)
+	const [supported, setSupported] = useState(false)
+	const [supportCount, setSupportCount] = useState(0)
+	const [isSupporting, setIsSupporting] = useState(false)
 	const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
 	useEffect(() => {
@@ -62,7 +66,11 @@ export function EnterpriseDetailPage() {
 		setEnterprise(null)
 		setError(null)
 		getEnterprise(slug)
-			.then(setEnterprise)
+			.then((detail) => {
+				setEnterprise(detail)
+				setSupported(detail.supported)
+				setSupportCount(detail.supportCount)
+			})
 			.catch((err: Error) => setError(err.message))
 	}, [slug])
 
@@ -70,6 +78,20 @@ export function EnterpriseDetailPage() {
 		if (!slug) return
 		setSaved(readSaved().includes(slug))
 	}, [slug])
+
+	async function handleSupport() {
+		if (!slug || isSupporting) return
+		setIsSupporting(true)
+		try {
+			const result = await toggleEnterpriseSupport(slug)
+			setSupported(result.supported)
+			setSupportCount(result.supportCount)
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Oy kaydedilemedi.')
+		} finally {
+			setIsSupporting(false)
+		}
+	}
 
 	function toggleSaved() {
 		if (!slug) return
@@ -142,6 +164,15 @@ export function EnterpriseDetailPage() {
 						</p>
 					</div>
 					<div className="flex flex-wrap gap-2">
+						<Button
+							variant={supported ? 'default' : 'outline'}
+							onClick={() => void handleSupport()}
+							disabled={isSupporting}
+						>
+							<ThumbsUpIcon className={supported ? 'fill-current' : ''} />
+							{supported ? 'Destekledin' : 'Destekle'}
+							<span className="tabular-nums">{supportCount}</span>
+						</Button>
 						<Button variant={saved ? 'default' : 'outline'} onClick={toggleSaved}>
 							<HeartIcon className={saved ? 'fill-current' : ''} />
 							{saved ? 'Kaydedildi' : 'Kaydet'}

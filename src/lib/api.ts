@@ -50,6 +50,12 @@ export async function listEnterprises(searchParams: URLSearchParams): Promise<Li
 	return apiGet(`/api/enterprises${query.length > 0 ? `?${query}` : ''}`)
 }
 
+export async function toggleEnterpriseSupport(
+	slug: string,
+): Promise<{ supportCount: number; supported: boolean }> {
+	return apiPost(`/api/enterprises/${encodeURIComponent(slug)}/votes`, {})
+}
+
 export async function getEnterprise(slug: string): Promise<EnterpriseDetail> {
 	return apiGet(`/api/enterprises/${encodeURIComponent(slug)}`)
 }

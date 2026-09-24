@@ -142,6 +142,13 @@ CREATE TABLE IF NOT EXISTS editorial_list_items (
 	PRIMARY KEY (editorial_list_id, enterprise_id)
 );
 
+CREATE TABLE IF NOT EXISTS enterprise_votes (
+	enterprise_id TEXT NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
+	voter_key TEXT NOT NULL,
+	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (enterprise_id, voter_key)
+);
+
 CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 	id TEXT PRIMARY KEY,
 	email TEXT NOT NULL UNIQUE,

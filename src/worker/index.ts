@@ -46,6 +46,7 @@ import {
 	getEnterpriseById,
 	getEnterpriseBySlug,
 	getEnterpriseDetailBySlug,
+	getEnterpriseSupport,
 	getHomePayload,
 	listEditSuggestions,
 	listEditorialLists,
@@ -57,6 +58,7 @@ import {
 	rejectSubmission,
 	reorderEnterpriseMedia,
 	updateEnterpriseMedia,
+	toggleEnterpriseSupport,
 	updateTaxonomyItem,
 	upsertEditorialList,
 	upsertEnterprise,
@@ -247,7 +249,28 @@ async function handleApiRequest(
 			return apiError('not_found', 'Girişim bulunamadı.', 404)
 		}
 
-		return json(enterprise)
+		let support: { supportCount: number; supported: boolean }
+		try {
+			support = await getEnterpriseSupport(env.DB, enterprise.id, await visitorKey(request))
+		} catch {
+			support = { supportCount: 0, supported: false }
+		}
+
+		return json({ ...enterprise, ...support })
+	}
+
+	const supportMatch = pathname.match(/^\/api\/enterprises\/([^/]+)\/votes$/)
+	if (request.method === 'POST' && supportMatch) {
+		try {
+			const result = await toggleEnterpriseSupport(
+				env.DB,
+				decodeURIComponent(supportMatch[1]),
+				await visitorKey(request),
+			)
+			return json(result)
+		} catch (error) {
+			return apiError('bad_request', errorMessage(error), 400)
+		}
 	}
 
 	const editSuggestionMatch = pathname.match(
@@ -498,7 +521,7 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 			listEditorialLists(env.DB, false),
 		])
 
-		let newsletterSubscribers = 0
+		let newsletterSubscribers: number
 		try {
 			newsletterSubscribers = await countNewsletterSubscribers(env.DB)
 		} catch {
@@ -814,6 +837,16 @@ function hasValidOrigin(request: Request): boolean {
 	}
 
 	return new URL(origin).origin === new URL(request.url).origin
+}
+
+async function visitorKey(request: Request): Promise<string> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const userAgent = request.headers.get('user-agent') ?? ''
+	const digest = await crypto.subtle.digest(
+		'SHA-256',
+		new TextEncoder().encode(`${ip}|${userAgent}`),
+	)
+	return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function getAuthRateLimitKey(request: Request, email: string, action: string): string {
