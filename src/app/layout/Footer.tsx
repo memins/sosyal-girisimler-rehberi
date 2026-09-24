@@ -9,7 +9,7 @@ const sections = [
 		title: 'Keşfet',
 		links: [
 			{ label: 'Ana sayfa', to: '/' },
-			{ label: 'Rehber', to: '/arama' },
+			{ label: 'Girişimler', to: '/arama' },
 			{ label: 'Son eklenenler (RSS)', to: '/feed.xml', external: true },
 		],
 	},

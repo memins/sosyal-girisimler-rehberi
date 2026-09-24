@@ -150,7 +150,7 @@ export function SubmissionPage() {
 				<div className="flex flex-wrap justify-center gap-2">
 					<Button onClick={handleReset}>Başka bir girişim öner</Button>
 					<Button asChild variant="outline">
-						<Link to="/arama">Rehbere dön</Link>
+						<Link to="/arama">Girişimlere dön</Link>
 					</Button>
 				</div>
 			</div>

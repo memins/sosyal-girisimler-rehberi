@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 
 const popularLinks = [
-	{ to: '/arama', label: 'Tüm rehber' },
+	{ to: '/arama', label: 'Girişimler' },
 	{ to: '/girisim-ekle', label: 'Girişim öner' },
 	{ to: '/hakkimizda', label: 'Hakkımızda' },
 ]

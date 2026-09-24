@@ -131,7 +131,7 @@ export function EnterpriseDetailPage() {
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<Link to="/arama">Rehber</Link>
+								<Link to="/arama">Girişimler</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
