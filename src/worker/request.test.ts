@@ -3,6 +3,7 @@ import {
 	parseEnterpriseFilters,
 	validateEditorialListInput,
 	validateEnterpriseInput,
+	validateNewsletterEmail,
 	validateSubmissionInput,
 } from './request'
 
@@ -64,6 +65,19 @@ describe('parseEnterpriseFilters', () => {
 	})
 })
 
+describe('validateNewsletterEmail', () => {
+	it('normalizes a valid address', () => {
+		expect(validateNewsletterEmail('  Editor@Example.com ')).toEqual({
+			ok: true,
+			email: 'editor@example.com',
+		})
+	})
+
+	it('rejects an invalid address', () => {
+		expect(validateNewsletterEmail('not-an-email').ok).toBe(false)
+	})
+})
+
 describe('validateSubmissionInput', () => {
 	it('accepts a complete public enterprise suggestion', () => {
 		const result = validateSubmissionInput({
@@ -76,6 +90,22 @@ describe('validateSubmissionInput', () => {
 		})
 
 		expect(result.ok).toBe(true)
+	})
+
+	it('rejects an image key outside the submissions prefix', () => {
+		const result = validateSubmissionInput({
+			name: 'Fazla',
+			description: 'Gida israfini azaltan sosyal girisim.',
+			contactEmail: 'editor@example.com',
+			imageKey: 'uploads/not-allowed.png',
+		})
+
+		expect(result).toEqual({
+			ok: false,
+			errors: {
+				imageKey: 'Görsel yüklemesi geçersiz.',
+			},
+		})
 	})
 
 	it('rejects incomplete suggestions with field errors', () => {

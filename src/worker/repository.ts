@@ -24,6 +24,7 @@ import type {
 	UpsertEnterpriseInput,
 	UpsertTaxonomyInput,
 } from '@/shared/types'
+import { typoLikeNeedles } from '@/lib/search-query'
 import type { EnterpriseFilters } from './request'
 
 type EnterpriseRow = {
@@ -80,6 +81,7 @@ type SubmissionRow = {
 	website_url: string | null
 	problem: string | null
 	solution: string | null
+	image_key: string | null
 	status: 'pending' | 'approved' | 'rejected'
 	enterprise_id: string | null
 	rejection_reason: string | null
@@ -234,13 +236,16 @@ export async function listEnterprises(
 	}
 
 	if (filters.query.length > 0) {
-		const normalized = turkishFold(filters.query)
-		const queryParam = `%${normalized}%`
+		const needles = typoLikeNeedles(turkishFold(filters.query))
 		const fields = ['name', 'short_description', 'problem', 'solution']
-		conditions.push(
-			`(${fields.map((f) => `${turkishFoldSql(f)} LIKE ?`).join(' OR ')})`,
+		const groups = needles.map(
+			() => `(${fields.map((field) => `${turkishFoldSql(field)} LIKE ?`).join(' OR ')})`,
 		)
-		params.push(queryParam, queryParam, queryParam, queryParam)
+		conditions.push(`(${groups.join(' OR ')})`)
+		for (const needle of needles) {
+			const queryParam = `%${needle}%`
+			params.push(queryParam, queryParam, queryParam, queryParam)
+		}
 	}
 
 	addExistsFilter(conditions, params, filters.categories, 'enterprise_categories', 'category_id')
@@ -327,7 +332,93 @@ export async function getEnterpriseDetailBySlug(
 	}
 
 	const related = await listRelatedEnterprises(db, enterprise)
-	return { ...enterprise, related }
+	const [previous, next] = await Promise.all([
+		getPublishedNeighbor(db, enterprise, 'previous'),
+		getPublishedNeighbor(db, enterprise, 'next'),
+	])
+	return { ...enterprise, related, previous, next, supportCount: 0, supported: false }
+}
+
+export async function getEnterpriseSupport(
+	db: D1Database,
+	enterpriseId: string,
+	voterKey: string,
+): Promise<{ supportCount: number; supported: boolean }> {
+	const [countRow, voteRow] = await Promise.all([
+		db
+			.prepare('SELECT COUNT(*) as count FROM enterprise_votes WHERE enterprise_id = ?')
+			.bind(enterpriseId)
+			.first<{ count: number }>(),
+		db
+			.prepare(
+				'SELECT 1 as voted FROM enterprise_votes WHERE enterprise_id = ? AND voter_key = ? LIMIT 1',
+			)
+			.bind(enterpriseId, voterKey)
+			.first<{ voted: number }>(),
+	])
+
+	return {
+		supportCount: Number(countRow?.count ?? 0),
+		supported: Boolean(voteRow),
+	}
+}
+
+export async function toggleEnterpriseSupport(
+	db: D1Database,
+	slug: string,
+	voterKey: string,
+): Promise<{ supportCount: number; supported: boolean }> {
+	const enterprise = await getEnterpriseBySlug(db, slug)
+	if (!enterprise || enterprise.status !== 'published') {
+		throw new Error('Girişim bulunamadı.')
+	}
+
+	const existing = await db
+		.prepare(
+			'SELECT 1 as voted FROM enterprise_votes WHERE enterprise_id = ? AND voter_key = ? LIMIT 1',
+		)
+		.bind(enterprise.id, voterKey)
+		.first<{ voted: number }>()
+
+	if (existing) {
+		await db
+			.prepare('DELETE FROM enterprise_votes WHERE enterprise_id = ? AND voter_key = ?')
+			.bind(enterprise.id, voterKey)
+			.run()
+	} else {
+		await db
+			.prepare('INSERT INTO enterprise_votes (enterprise_id, voter_key) VALUES (?, ?)')
+			.bind(enterprise.id, voterKey)
+			.run()
+	}
+
+	return getEnterpriseSupport(db, enterprise.id, voterKey)
+}
+
+async function getPublishedNeighbor(
+	db: D1Database,
+	enterprise: Enterprise,
+	direction: 'previous' | 'next',
+): Promise<{ slug: string; name: string } | null> {
+	const older = direction === 'previous'
+	const comparison = older ? '<' : '>'
+	const order = older ? 'DESC' : 'ASC'
+	const row = await db
+		.prepare(
+			`SELECT slug, name FROM enterprises
+				WHERE status = 'published'
+					AND id != ?
+					AND (
+						created_at ${comparison} ?
+						OR (created_at = ? AND id ${comparison} ?)
+					)
+				ORDER BY created_at ${order}, id ${order}
+				LIMIT 1`,
+		)
+		.bind(enterprise.id, enterprise.createdAt, enterprise.createdAt, enterprise.id)
+		.first<{ slug: string; name: string }>()
+
+	return row ?? null
 }
 
 async function listRelatedEnterprises(
@@ -355,6 +446,33 @@ async function listRelatedEnterprises(
 	return mapEnterpriseSummaries(db, rows.results)
 }
 
+export async function subscribeNewsletter(
+	db: D1Database,
+	email: string,
+): Promise<{ alreadySubscribed: boolean }> {
+	const existing = await db
+		.prepare('SELECT id FROM newsletter_subscribers WHERE email = ? LIMIT 1')
+		.bind(email)
+		.first<{ id: string }>()
+
+	if (existing) return { alreadySubscribed: true }
+
+	await db
+		.prepare('INSERT INTO newsletter_subscribers (id, email) VALUES (?, ?)')
+		.bind(crypto.randomUUID(), email)
+		.run()
+
+	return { alreadySubscribed: false }
+}
+
+export async function countNewsletterSubscribers(db: D1Database): Promise<number> {
+	const row = await db
+		.prepare('SELECT COUNT(*) as count FROM newsletter_subscribers')
+		.first<{ count: number }>()
+
+	return Number(row?.count ?? 0)
+}
+
 export async function createSubmission(
 	db: D1Database,
 	input: SubmissionInput,
@@ -369,8 +487,9 @@ export async function createSubmission(
 				contact_email,
 				website_url,
 				problem,
-				solution
-			) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				solution,
+				image_key
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		)
 		.bind(
 			id,
@@ -380,6 +499,7 @@ export async function createSubmission(
 			input.websiteUrl ?? null,
 			input.problem ?? null,
 			input.solution ?? null,
+			input.imageKey ?? null,
 		)
 		.run()
 
@@ -520,6 +640,7 @@ export async function approveSubmission(db: D1Database, submissionId: string): P
 		countryCodes: [],
 		sdgIds: [],
 		websiteUrl: submission.websiteUrl ?? undefined,
+		logoKey: submission.imageKey ?? undefined,
 	})
 
 	await db
@@ -695,6 +816,7 @@ async function mapEnterpriseSummaries(
 			businessModels: enterprise.businessModels,
 			countries: enterprise.countries,
 			sdgs: enterprise.sdgs,
+			createdAt: enterprise.createdAt,
 		}
 	})
 }
@@ -1005,6 +1127,7 @@ function mapSubmissionRow(row: SubmissionRow): Submission {
 		websiteUrl: row.website_url,
 		problem: row.problem,
 		solution: row.solution,
+		imageKey: row.image_key,
 		status: row.status,
 		enterpriseId: row.enterprise_id,
 		rejectionReason: row.rejection_reason,

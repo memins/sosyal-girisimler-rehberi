@@ -32,6 +32,7 @@ type SubmissionInput = {
 	websiteUrl?: unknown
 	problem?: unknown
 	solution?: unknown
+	imageKey?: unknown
 }
 
 type EnterpriseInput = {
@@ -91,6 +92,14 @@ function parseSort(value: string | null): EnterpriseSort {
 	return 'featured'
 }
 
+export function validateNewsletterEmail(value: unknown): { ok: true; email: string } | { ok: false; message: string } {
+	const email = readString(value).toLowerCase()
+	if (!isEmail(email) || email.length > 200) {
+		return { ok: false, message: 'Geçerli bir e-posta adresi girin.' }
+	}
+	return { ok: true, email }
+}
+
 export function validateSubmissionInput(input: SubmissionInput): SubmissionValidationResult {
 	const errors: Record<string, string> = {}
 	const name = readString(input.name)
@@ -111,6 +120,11 @@ export function validateSubmissionInput(input: SubmissionInput): SubmissionValid
 	}
 
 	requireSafeUrl(errors, 'websiteUrl', websiteUrl)
+
+	const imageKey = readString(input.imageKey)
+	if (imageKey.length > 0 && !isSubmissionImageKey(imageKey)) {
+		errors.imageKey = 'Görsel yüklemesi geçersiz.'
+	}
 
 	if (Object.keys(errors).length > 0) {
 		return { ok: false, errors }
@@ -183,6 +197,10 @@ function parseSdgList(value: string | null): Array<number> {
 
 function readString(value: unknown): string {
 	return typeof value === 'string' ? value.trim() : ''
+}
+
+export function isSubmissionImageKey(value: string): boolean {
+	return /^submissions\/[A-Za-z0-9._-]+$/.test(value)
 }
 
 function isEmail(value: string): boolean {

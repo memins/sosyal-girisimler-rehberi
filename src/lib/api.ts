@@ -33,6 +33,7 @@ type AdminSummary = {
 	enterprises: number
 	pendingSubmissions: number
 	editorialLists: number
+	newsletterSubscribers?: number
 }
 
 export async function getHome(): Promise<HomePayload> {
@@ -49,12 +50,34 @@ export async function listEnterprises(searchParams: URLSearchParams): Promise<Li
 	return apiGet(`/api/enterprises${query.length > 0 ? `?${query}` : ''}`)
 }
 
+export async function toggleEnterpriseSupport(
+	slug: string,
+): Promise<{ supportCount: number; supported: boolean }> {
+	return apiPost(`/api/enterprises/${encodeURIComponent(slug)}/votes`, {})
+}
+
 export async function getEnterprise(slug: string): Promise<EnterpriseDetail> {
 	return apiGet(`/api/enterprises/${encodeURIComponent(slug)}`)
 }
 
+export async function subscribeNewsletter(
+	email: string,
+): Promise<{ ok: true; alreadySubscribed: boolean }> {
+	return apiPost('/api/newsletter', { email })
+}
+
 export async function createSubmission(input: SubmissionInput): Promise<Submission> {
 	return apiPost('/api/submissions', input)
+}
+
+export async function uploadSubmissionImage(file: File): Promise<{ key: string }> {
+	const body = new FormData()
+	body.set('file', file)
+	const response = await fetch('/api/submissions/media', {
+		method: 'POST',
+		body,
+	})
+	return parseResponse(response)
 }
 
 export async function submitEditSuggestion(

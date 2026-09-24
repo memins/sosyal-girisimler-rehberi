@@ -1,0 +1,85 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+
+const STORAGE_KEY = 'sgr-cookie-consent'
+const GA_ID = 'G-71TXFKRMQX'
+
+type Consent = 'accepted' | 'rejected'
+
+export function CookieConsent() {
+	const [consent, setConsent] = useState<Consent | null | undefined>(undefined)
+
+	useEffect(() => {
+		const stored = readConsent()
+		setConsent(stored)
+		if (stored === 'accepted') loadAnalytics()
+	}, [])
+
+	function handleChoice(next: Consent) {
+		localStorage.setItem(STORAGE_KEY, next)
+		setConsent(next)
+		if (next === 'accepted') loadAnalytics()
+	}
+
+	if (consent !== null) return null
+
+	return (
+		<div
+			role="dialog"
+			aria-labelledby="cookie-consent-title"
+			aria-describedby="cookie-consent-description"
+			className="fixed inset-x-0 bottom-16 z-50 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur-md md:bottom-0"
+		>
+			<div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+				<div className="flex flex-col gap-1">
+					<p id="cookie-consent-title" className="text-sm font-medium">
+						Çerezler
+					</p>
+					<p id="cookie-consent-description" className="text-sm leading-relaxed text-muted-foreground">
+						Siteyi geliştirmek için yalnızca onay verirseniz Google Analytics çerezi kullanılır.
+						Ayrıntılar{' '}
+						<Link to="/gizlilik" className="text-primary underline-offset-4 hover:underline">
+							gizlilik sayfasında
+						</Link>
+						.
+					</p>
+				</div>
+				<div className="flex shrink-0 gap-2">
+					<Button type="button" variant="outline" onClick={() => handleChoice('rejected')}>
+						Reddet
+					</Button>
+					<Button type="button" onClick={() => handleChoice('accepted')}>
+						Kabul et
+					</Button>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+function readConsent(): Consent | null {
+	try {
+		const value = localStorage.getItem(STORAGE_KEY)
+		return value === 'accepted' || value === 'rejected' ? value : null
+	} catch {
+		return null
+	}
+}
+
+function loadAnalytics() {
+	if (document.getElementById('ga-loader')) return
+
+	const script = document.createElement('script')
+	script.id = 'ga-loader'
+	script.async = true
+	script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
+	document.head.appendChild(script)
+
+	window.dataLayer = window.dataLayer ?? []
+	window.gtag = function gtag(...args: Array<unknown>) {
+		window.dataLayer?.push(args)
+	}
+	window.gtag('js', new Date())
+	window.gtag('config', GA_ID)
+}

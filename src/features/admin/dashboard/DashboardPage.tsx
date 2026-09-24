@@ -13,6 +13,7 @@ interface DashboardData {
 	enterprises: number
 	pendingSubmissions: number
 	editorialLists: number
+	newsletterSubscribers: number
 	featured: number
 	recentSubmissions: Array<Submission>
 }
@@ -33,6 +34,7 @@ export default function DashboardPage() {
 					enterprises: summary.enterprises,
 					pendingSubmissions: summary.pendingSubmissions,
 					editorialLists: summary.editorialLists,
+					newsletterSubscribers: summary.newsletterSubscribers ?? 0,
 					featured: enterprises.items.filter((e) => e.isFeatured).length,
 					recentSubmissions: submissions.slice(0, 6),
 				})
@@ -73,6 +75,11 @@ export default function DashboardPage() {
 					icon={TagsIcon}
 					label="Editöryel liste"
 					value={data?.editorialLists ?? '—'}
+				/>
+				<MetricCard
+					icon={TagsIcon}
+					label="Bülten abonesi"
+					value={data?.newsletterSubscribers ?? '—'}
 				/>
 			</section>
 

@@ -2,13 +2,15 @@ import { Link } from 'react-router-dom'
 import { Container } from '@/components/layout/container'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Logomark } from '@/components/logomark'
+import { NewsletterForm } from '@/components/newsletter-form'
 
 const sections = [
 	{
 		title: 'Keşfet',
 		links: [
 			{ label: 'Ana sayfa', to: '/' },
-			{ label: 'Rehber', to: '/arama' },
+			{ label: 'Girişimler', to: '/arama' },
+			{ label: 'Son eklenenler (RSS)', to: '/feed.xml', external: true },
 		],
 	},
 	{
@@ -49,6 +51,7 @@ export function Footer() {
 							Türkiye ve dünyadan sosyal girişimleri görünür kılan açık, gönüllü
 							sürdürülen bir rehber.
 						</p>
+						<NewsletterForm />
 					</div>
 					{sections.map((section) => (
 						<div key={section.title} className="flex flex-col gap-3">
@@ -58,12 +61,21 @@ export function Footer() {
 							<ul className="flex flex-col gap-2">
 								{section.links.map((link) => (
 									<li key={link.to}>
-										<Link
-											to={link.to}
-											className="text-sm text-foreground/80 transition hover:text-primary"
-										>
-											{link.label}
-										</Link>
+										{link.external ? (
+											<a
+												href={link.to}
+												className="text-sm text-foreground/80 transition hover:text-primary"
+											>
+												{link.label}
+											</a>
+										) : (
+											<Link
+												to={link.to}
+												className="text-sm text-foreground/80 transition hover:text-primary"
+											>
+												{link.label}
+											</Link>
+										)}
 									</li>
 								))}
 							</ul>
@@ -71,18 +83,7 @@ export function Footer() {
 					))}
 				</div>
 				<div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground md:flex-row md:items-center">
-					<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-						<p>© {new Date().getFullYear()} Sosyal Girişimler Rehberi · Açık kaynak</p>
-						<span aria-hidden="true" className="hidden text-border md:inline">
-							·
-						</span>
-						<Link
-							to="/admin"
-							className="text-muted-foreground/60 transition hover:text-foreground"
-						>
-							Editör girişi
-						</Link>
-					</div>
+					<p>© {new Date().getFullYear()} Sosyal Girişimler Rehberi · Açık kaynak</p>
 					<div className="flex items-center gap-3">
 						<span>Tema</span>
 						<ThemeToggle />

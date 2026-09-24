@@ -1,13 +1,37 @@
-import { ArrowUpRightIcon, GlobeIcon } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ArrowUpRightIcon, GlobeIcon, PencilIcon } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { usePublicAdmin } from '@/features/admin/state/usePublicAdmin'
 import type { EnterpriseSummary } from '@/shared/types'
+import { formatAddedAgo } from '@/lib/relative-time'
 import { Badge } from '@/components/ui/badge'
 
 interface EnterpriseCardProps {
 	enterprise: EnterpriseSummary
+	showAddedAt?: boolean
 }
 
-export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
+function EditorEditButton({ enterpriseId }: { enterpriseId: string }) {
+	const admin = usePublicAdmin()
+	const navigate = useNavigate()
+	if (!admin) return null
+
+	return (
+		<button
+			type="button"
+			className="absolute top-3 right-3 z-10 inline-flex items-center gap-1 rounded-full bg-background/95 px-2.5 py-1 text-xs font-medium shadow"
+			onClick={(event) => {
+				event.preventDefault()
+				event.stopPropagation()
+				navigate(`/admin/enterprises/${enterpriseId}/edit`)
+			}}
+		>
+			<PencilIcon className="size-3" aria-hidden="true" />
+			Düzenle
+		</button>
+	)
+}
+
+export function EnterpriseCard({ enterprise, showAddedAt = false }: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
 	const primaryBusinessModel = enterprise.businessModels?.[0]
 
@@ -16,6 +40,7 @@ export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
 			to={`/girisimler/${enterprise.slug}`}
 			className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 		>
+			<EditorEditButton enterpriseId={enterprise.id} />
 			<div className="flex h-36 items-center justify-center overflow-hidden bg-secondary">
 				{enterprise.coverKey ? (
 					<img
@@ -72,6 +97,11 @@ export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
 				<p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
 					{enterprise.shortDescription}
 				</p>
+				{showAddedAt && enterprise.createdAt ? (
+					<p className="text-xs font-medium text-muted-foreground">
+						{formatAddedAgo(enterprise.createdAt)}
+					</p>
+				) : null}
 			</div>
 		</Link>
 	)
@@ -86,6 +116,7 @@ export function EnterpriseCardLead({ enterprise }: EnterpriseCardProps) {
 			to={`/girisimler/${enterprise.slug}`}
 			className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 		>
+			<EditorEditButton enterpriseId={enterprise.id} />
 			<div className="relative h-56 overflow-hidden bg-secondary md:h-72">
 				{enterprise.coverKey ? (
 					<img
@@ -148,8 +179,9 @@ export function EnterpriseCardCompact({ enterprise }: EnterpriseCardProps) {
 	return (
 		<Link
 			to={`/girisimler/${enterprise.slug}`}
-			className="group flex items-start gap-3 rounded-xl border border-border bg-card p-3 transition hover:border-primary/40 hover:bg-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className="group relative flex items-start gap-3 rounded-xl border border-border bg-card p-3 transition hover:border-primary/40 hover:bg-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 		>
+			<EditorEditButton enterpriseId={enterprise.id} />
 			<div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
 				{enterprise.logoKey || enterprise.coverKey ? (
 					<img

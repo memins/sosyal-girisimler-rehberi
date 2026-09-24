@@ -26,6 +26,8 @@ import {
 	parseEnterpriseFilters,
 	validateEditorialListInput,
 	validateEnterpriseInput,
+	isSubmissionImageKey,
+	validateNewsletterEmail,
 	validateSubmissionInput,
 } from './request'
 import {
@@ -33,7 +35,9 @@ import {
 	applyEditSuggestion,
 	approveSubmission,
 	createEditSuggestion,
+	countNewsletterSubscribers,
 	createSubmission,
+	subscribeNewsletter,
 	createTaxonomyItem,
 	deleteEnterprise,
 	deleteEnterpriseMedia,
@@ -42,6 +46,7 @@ import {
 	getEnterpriseById,
 	getEnterpriseBySlug,
 	getEnterpriseDetailBySlug,
+	getEnterpriseSupport,
 	getHomePayload,
 	listEditSuggestions,
 	listEditorialLists,
@@ -53,13 +58,20 @@ import {
 	rejectSubmission,
 	reorderEnterpriseMedia,
 	updateEnterpriseMedia,
+	toggleEnterpriseSupport,
 	updateTaxonomyItem,
 	upsertEditorialList,
 	upsertEnterprise,
 } from './repository'
 import type { TaxonomyType, UpdateTaxonomyInput, UpsertTaxonomyInput } from '@/shared/types'
 import { apiError, json, readJsonBody } from './responses'
-import { buildRobotsTxt, buildSitemapXml, type SitemapEntry } from './seo'
+import {
+	buildEnterpriseJsonLd,
+	buildRecentEnterprisesRss,
+	buildRobotsTxt,
+	buildSitemapXml,
+	type SitemapEntry,
+} from './seo'
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -101,7 +113,11 @@ async function handleSeoAssetRequest(
 	env: Env,
 	url: URL,
 ): Promise<Response | null> {
-	if (url.pathname !== '/robots.txt' && url.pathname !== '/sitemap.xml') {
+	if (
+		url.pathname !== '/robots.txt' &&
+		url.pathname !== '/sitemap.xml' &&
+		url.pathname !== '/feed.xml'
+	) {
 		return null
 	}
 
@@ -116,6 +132,14 @@ async function handleSeoAssetRequest(
 
 	if (url.pathname === '/robots.txt') {
 		return seoTextResponse(buildRobotsTxt(), 'text/plain; charset=utf-8', request.method)
+	}
+
+	if (url.pathname === '/feed.xml') {
+		return seoTextResponse(
+			buildRecentEnterprisesRss(await listRecentEnterpriseRssItems(env)),
+			'application/rss+xml; charset=utf-8',
+			request.method,
+		)
 	}
 
 	const entries = await listPublishedEnterpriseSitemapEntries(env)
@@ -147,6 +171,41 @@ async function listPublishedEnterpriseSitemapEntries(env: Env): Promise<Array<Si
 			}),
 		)
 
+		return []
+	}
+}
+
+async function listRecentEnterpriseRssItems(env: Env) {
+	try {
+		const rows = await env.DB.prepare(
+			`SELECT name, slug, short_description, created_at
+				FROM enterprises
+				WHERE status = ?
+				ORDER BY created_at DESC
+				LIMIT 30`,
+		)
+			.bind('published')
+			.all<{
+				name: string
+				slug: string
+				short_description: string
+				created_at: string
+			}>()
+
+		return rows.results.map((row) => ({
+			title: row.name,
+			path: `/girisimler/${row.slug}`,
+			description: row.short_description,
+			publishedAt: row.created_at,
+		}))
+	} catch (error) {
+		console.error(
+			JSON.stringify({
+				level: 'error',
+				message: 'Failed to build recent enterprise RSS',
+				error: String(error),
+			}),
+		)
 		return []
 	}
 }
@@ -196,13 +255,37 @@ async function handleApiRequest(
 			return apiError('not_found', 'Girişim bulunamadı.', 404)
 		}
 
-		return json(enterprise)
+		let support: { supportCount: number; supported: boolean }
+		try {
+			support = await getEnterpriseSupport(env.DB, enterprise.id, await visitorKey(request))
+		} catch {
+			support = { supportCount: 0, supported: false }
+		}
+
+		return json({ ...enterprise, ...support })
+	}
+
+	const supportMatch = pathname.match(/^\/api\/enterprises\/([^/]+)\/votes$/)
+	if (request.method === 'POST' && supportMatch) {
+		try {
+			const result = await toggleEnterpriseSupport(
+				env.DB,
+				decodeURIComponent(supportMatch[1]),
+				await visitorKey(request),
+			)
+			return json(result)
+		} catch (error) {
+			return apiError('bad_request', errorMessage(error), 400)
+		}
 	}
 
 	const editSuggestionMatch = pathname.match(
 		/^\/api\/enterprises\/([^/]+)\/edit-suggestions$/,
 	)
 	if (request.method === 'POST' && editSuggestionMatch) {
+		if (!(await allowPublicWrite(env, request, 'edit-suggestion', 10))) {
+			return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
+		}
 		const slug = decodeURIComponent(editSuggestionMatch[1])
 		const body = (await readJsonBody(request)) as {
 			message?: unknown
@@ -223,7 +306,18 @@ async function handleApiRequest(
 		}
 	}
 
+	if (request.method === 'POST' && pathname === '/api/submissions/media') {
+		return uploadSubmissionImage(request, env)
+	}
+
+	if (request.method === 'POST' && pathname === '/api/newsletter') {
+		return subscribeToNewsletter(request, env)
+	}
+
 	if (request.method === 'POST' && pathname === '/api/submissions') {
+		if (!(await allowPublicWrite(env, request, 'submission', 10))) {
+			return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
+		}
 		const body = (await readJsonBody(request)) as SubmissionInput
 		const validation = validateSubmissionInput(body)
 
@@ -439,10 +533,18 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 			listEditorialLists(env.DB, false),
 		])
 
+		let newsletterSubscribers: number
+		try {
+			newsletterSubscribers = await countNewsletterSubscribers(env.DB)
+		} catch {
+			newsletterSubscribers = 0
+		}
+
 		return json({
 			enterprises: enterprises.total,
 			pendingSubmissions: submissions.filter((submission) => submission.status === 'pending').length,
 			editorialLists: editorialLists.length,
+			newsletterSubscribers,
 		})
 	}
 
@@ -749,6 +851,32 @@ function hasValidOrigin(request: Request): boolean {
 	return new URL(origin).origin === new URL(request.url).origin
 }
 
+async function allowPublicWrite(
+	env: Env,
+	request: Request,
+	action: string,
+	limit: number,
+): Promise<boolean> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const key = `public:${action}:${ip}`
+	const attempts = Number(await env.CACHE.get(key))
+	if (Number.isFinite(attempts) && attempts >= limit) return false
+	await env.CACHE.put(key, String((Number.isFinite(attempts) ? attempts : 0) + 1), {
+		expirationTtl: 60 * 60,
+	})
+	return true
+}
+
+async function visitorKey(request: Request): Promise<string> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const userAgent = request.headers.get('user-agent') ?? ''
+	const digest = await crypto.subtle.digest(
+		'SHA-256',
+		new TextEncoder().encode(`${ip}|${userAgent}`),
+	)
+	return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 function getAuthRateLimitKey(request: Request, email: string, action: string): string {
 	const ip = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? 'unknown'
 
@@ -769,6 +897,79 @@ async function recordFailedAuthAttempt(env: Env, key: string): Promise<void> {
 
 async function clearRateLimit(env: Env, key: string): Promise<void> {
 	await env.CACHE.delete(key)
+}
+
+const SUBMISSION_IMAGE_TYPES = new Set([
+	'image/jpeg',
+	'image/png',
+	'image/webp',
+	'image/gif',
+	'image/avif',
+])
+const SUBMISSION_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+async function subscribeToNewsletter(request: Request, env: Env): Promise<Response> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const rateKey = `newsletter:${ip}`
+	const attempts = Number(await env.CACHE.get(rateKey))
+	if (Number.isFinite(attempts) && attempts >= 10) {
+		return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
+	}
+
+	const body = (await readJsonBody(request)) as { email?: unknown }
+	const validation = validateNewsletterEmail(body.email)
+	if (!validation.ok) {
+		return apiError('bad_request', validation.message, 422)
+	}
+
+	await env.CACHE.put(rateKey, String((Number.isFinite(attempts) ? attempts : 0) + 1), {
+		expirationTtl: 60 * 60,
+	})
+
+	try {
+		const result = await subscribeNewsletter(env.DB, validation.email)
+		return json({ ok: true, ...result })
+	} catch (error) {
+		return apiError('internal_error', errorMessage(error), 500)
+	}
+}
+
+async function uploadSubmissionImage(request: Request, env: Env): Promise<Response> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const rateKey = `submission-upload:${ip}`
+	const attempts = Number(await env.CACHE.get(rateKey))
+	if (Number.isFinite(attempts) && attempts >= 20) {
+		return apiError('bad_request', 'Çok fazla görsel yüklendi. Lütfen daha sonra tekrar deneyin.', 429)
+	}
+
+	const formData = await request.formData()
+	const file = formData.get('file')
+	if (!(file instanceof File)) {
+		return apiError('bad_request', 'Yüklenecek dosya bulunamadı.', 400)
+	}
+	if (!SUBMISSION_IMAGE_TYPES.has(file.type)) {
+		return apiError('bad_request', 'Yalnızca JPEG, PNG, WebP, GIF veya AVIF yükleyebilirsiniz.', 400)
+	}
+	if (file.size <= 0 || file.size > SUBMISSION_IMAGE_MAX_BYTES) {
+		return apiError('bad_request', 'Görsel 5 MB’den küçük olmalı.', 400)
+	}
+
+	const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80) || 'image'
+	const objectKey = `submissions/${crypto.randomUUID()}-${safeName}`
+	if (!isSubmissionImageKey(objectKey)) {
+		return apiError('bad_request', 'Görsel yüklemesi geçersiz.', 400)
+	}
+
+	await env.MEDIA.put(objectKey, file.stream(), {
+		httpMetadata: { contentType: file.type },
+	})
+	await env.CACHE.put(
+		rateKey,
+		String((Number.isFinite(attempts) ? attempts : 0) + 1),
+		{ expirationTtl: 60 * 60 },
+	)
+
+	return json({ key: objectKey }, { status: 201 })
 }
 
 async function uploadMedia(request: Request, env: Env): Promise<Response> {
@@ -871,6 +1072,19 @@ async function renderEnterpriseHtml(
 		.on('link[rel="canonical"]', {
 			element(el) {
 				el.setAttribute('href', canonicalUrl)
+			},
+		})
+		.on('head', {
+			element(el) {
+				const jsonLd = buildEnterpriseJsonLd({
+					name: enterprise.name,
+					description,
+					canonicalUrl,
+					websiteUrl: enterprise.websiteUrl,
+					instagramUrl: enterprise.instagramUrl,
+					imageUrl,
+				})
+				el.append(`<script type="application/ld+json">${jsonLd}</script>`, { html: true })
 			},
 		})
 		// Drop any image:width/height meta because we no longer guarantee 1200×630

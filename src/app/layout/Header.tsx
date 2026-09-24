@@ -8,7 +8,7 @@ import { Logomark } from '@/components/logomark'
 
 const navigation = [
 	{ href: '/', label: 'Ana sayfa' },
-	{ href: '/arama', label: 'Rehber' },
+	{ href: '/arama', label: 'Girişimler' },
 	{ href: '/hakkimizda', label: 'Hakkımızda' },
 ]
 

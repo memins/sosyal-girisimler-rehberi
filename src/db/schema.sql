@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS submissions (
 	website_url TEXT,
 	problem TEXT,
 	solution TEXT,
+	image_key TEXT,
 	status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
 	enterprise_id TEXT REFERENCES enterprises(id) ON DELETE SET NULL,
 	rejection_reason TEXT,
@@ -140,6 +141,22 @@ CREATE TABLE IF NOT EXISTS editorial_list_items (
 	sort_order INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY (editorial_list_id, enterprise_id)
 );
+
+CREATE TABLE IF NOT EXISTS enterprise_votes (
+	enterprise_id TEXT NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
+	voter_key TEXT NOT NULL,
+	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (enterprise_id, voter_key)
+);
+
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+	id TEXT PRIMARY KEY,
+	email TEXT NOT NULL UNIQUE,
+	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_created_at
+	ON newsletter_subscribers(created_at);
 
 CREATE TABLE IF NOT EXISTS feedback (
 	id TEXT PRIMARY KEY,

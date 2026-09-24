@@ -1,8 +1,11 @@
 import {
 	AlertCircleIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
 	AtSignIcon,
 	ExternalLinkIcon,
 	HeartIcon,
+	ThumbsUpIcon,
 	LightbulbIcon,
 	LinkIcon,
 	Loader2Icon,
@@ -13,7 +16,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getEnterprise, submitEditSuggestion } from '@/lib/api'
+import { getEnterprise, submitEditSuggestion, toggleEnterpriseSupport } from '@/lib/api'
 import type { EnterpriseDetail } from '@/shared/types'
 import {
 	Dialog,
@@ -45,6 +48,7 @@ import { Separator } from '@/components/ui/separator'
 import { ErrorBlock, RouteFallback } from '@/components/StateBlock'
 import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
 import { GalleryLightbox } from '@/features/directory/GalleryLightbox'
+import { PublicEnterpriseActions } from '@/features/directory/PublicEnterpriseActions'
 
 const SAVED_KEY = 'sgr:saved'
 
@@ -53,6 +57,9 @@ export function EnterpriseDetailPage() {
 	const [enterprise, setEnterprise] = useState<EnterpriseDetail | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [saved, setSaved] = useState(false)
+	const [supported, setSupported] = useState(false)
+	const [supportCount, setSupportCount] = useState(0)
+	const [isSupporting, setIsSupporting] = useState(false)
 	const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
 	useEffect(() => {
@@ -60,7 +67,11 @@ export function EnterpriseDetailPage() {
 		setEnterprise(null)
 		setError(null)
 		getEnterprise(slug)
-			.then(setEnterprise)
+			.then((detail) => {
+				setEnterprise(detail)
+				setSupported(detail.supported)
+				setSupportCount(detail.supportCount)
+			})
 			.catch((err: Error) => setError(err.message))
 	}, [slug])
 
@@ -68,6 +79,20 @@ export function EnterpriseDetailPage() {
 		if (!slug) return
 		setSaved(readSaved().includes(slug))
 	}, [slug])
+
+	async function handleSupport() {
+		if (!slug || isSupporting) return
+		setIsSupporting(true)
+		try {
+			const result = await toggleEnterpriseSupport(slug)
+			setSupported(result.supported)
+			setSupportCount(result.supportCount)
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Oy kaydedilemedi.')
+		} finally {
+			setIsSupporting(false)
+		}
+	}
 
 	function toggleSaved() {
 		if (!slug) return
@@ -107,7 +132,7 @@ export function EnterpriseDetailPage() {
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<Link to="/arama">Rehber</Link>
+								<Link to="/arama">Girişimler</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
@@ -140,6 +165,15 @@ export function EnterpriseDetailPage() {
 						</p>
 					</div>
 					<div className="flex flex-wrap gap-2">
+						<Button
+							variant={supported ? 'default' : 'outline'}
+							onClick={() => void handleSupport()}
+							disabled={isSupporting}
+						>
+							<ThumbsUpIcon className={supported ? 'fill-current' : ''} />
+							{supported ? 'Destekledin' : 'Destekle'}
+							<span className="tabular-nums">{supportCount}</span>
+						</Button>
 						<Button variant={saved ? 'default' : 'outline'} onClick={toggleSaved}>
 							<HeartIcon className={saved ? 'fill-current' : ''} />
 							{saved ? 'Kaydedildi' : 'Kaydet'}
@@ -184,11 +218,56 @@ export function EnterpriseDetailPage() {
 										LinkedIn
 									</a>
 								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`}
+										target="_blank"
+										rel="noreferrer"
+									>
+										Telegram
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+										target="_blank"
+										rel="noreferrer"
+									>
+										Facebook
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => {
+										void navigator.clipboard
+											.writeText(`${shareText} ${shareUrl}`)
+											.then(() => toast.success('Discord için metin kopyalandı'))
+											.catch(() => toast.error('Metin kopyalanamadı'))
+									}}
+								>
+									Discord
+								</DropdownMenuItem>
+								<DropdownMenuItem asChild>
+									<a
+										href={`mailto:?subject=${encodeURIComponent(enterprise.name)}&body=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`}
+									>
+										E-posta
+									</a>
+								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
 				</div>
 			</header>
+
+			<PublicEnterpriseActions enterprise={enterprise} />
+
+			<nav
+				aria-label="Girişimler arasında gezin"
+				className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between"
+			>
+				<NeighborLink direction="previous" neighbor={enterprise.previous} />
+				<NeighborLink direction="next" neighbor={enterprise.next} />
+			</nav>
 
 			<div className="grid gap-12 md:grid-cols-[minmax(0,1fr)_320px]">
 				<div className="flex flex-col gap-12">
@@ -210,6 +289,7 @@ export function EnterpriseDetailPage() {
 						title="Sosyal etki"
 						body={enterprise.impact}
 					/>
+					{enterprise.websiteUrl && <WebsiteEmbed url={enterprise.websiteUrl} name={enterprise.name} />}
 					{enterprise.longContent && (
 						<section className="prose prose-neutral max-w-none dark:prose-invert">
 							<p>{enterprise.longContent}</p>
@@ -317,29 +397,91 @@ function DetailSection({ accent, icon: Icon, title, body }: DetailSectionProps) 
 	)
 }
 
+function WebsiteEmbed({ url, name }: { url: string; name: string }) {
+	const [isOpen, setIsOpen] = useState(false)
+
+	return (
+		<section className="flex flex-col gap-3 rounded-2xl border border-border bg-card/40 p-4">
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="flex flex-col gap-1">
+					<h2 className="text-lg font-semibold">Site içinde aç</h2>
+					<p className="text-sm text-muted-foreground">
+						{name} bağlantısını bu sayfadan ayrılmadan görüntüleyebilirsin.
+					</p>
+				</div>
+				<Button type="button" variant="outline" onClick={() => setIsOpen((open) => !open)}>
+					{isOpen ? 'Kapat' : 'Sayfada aç'}
+				</Button>
+			</div>
+			{isOpen ? (
+				<iframe
+					title={`${name} web sitesi`}
+					src={url}
+					className="h-[28rem] w-full rounded-xl border border-border bg-background"
+					loading="lazy"
+					sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+				/>
+			) : null}
+		</section>
+	)
+}
+
+function NeighborLink({
+	direction,
+	neighbor,
+}: {
+	direction: 'previous' | 'next'
+	neighbor: EnterpriseDetail['previous']
+}) {
+	const isPrevious = direction === 'previous'
+	if (!neighbor) {
+		return <span className="hidden flex-1 sm:block" />
+	}
+
+	return (
+		<Link
+			to={`/girisimler/${neighbor.slug}`}
+			className={`flex min-w-0 flex-1 flex-col gap-1 rounded-xl border border-border bg-card/40 px-4 py-3 text-sm transition hover:border-primary/40 hover:bg-card ${
+				isPrevious ? 'sm:items-start' : 'sm:items-end'
+			}`}
+		>
+			<span className="inline-flex items-center gap-1 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+				{isPrevious ? <ChevronLeftIcon className="size-3.5" /> : null}
+				{isPrevious ? 'Önceki girişim' : 'Sonraki girişim'}
+				{isPrevious ? null : <ChevronRightIcon className="size-3.5" />}
+			</span>
+			<span className="truncate font-medium">{neighbor.name}</span>
+		</Link>
+	)
+}
+
 function EnterpriseFactsCard({ enterprise }: { enterprise: EnterpriseDetail }) {
 	return (
 		<div className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
-			{(enterprise.websiteUrl || enterprise.instagramUrl) && (
-				<div className="flex flex-col gap-2">
-					{enterprise.websiteUrl && (
-						<Button asChild variant="outline" className="justify-start" size="sm">
-							<a href={enterprise.websiteUrl} target="_blank" rel="noreferrer">
-								<ExternalLinkIcon />
-								Web sitesi
-							</a>
-						</Button>
-					)}
-					{enterprise.instagramUrl && (
-						<Button asChild variant="outline" className="justify-start" size="sm">
-							<a href={enterprise.instagramUrl} target="_blank" rel="noreferrer">
-								<AtSignIcon />
-								Instagram
-							</a>
-						</Button>
-					)}
-				</div>
-			)}
+			<section className="flex flex-col gap-2">
+				<h2 className="text-sm font-semibold">Bu girişimle nasıl iletişime geçebilirim?</h2>
+				{enterprise.instagramUrl ? (
+					<Button asChild variant="outline" className="justify-start" size="sm">
+						<a href={enterprise.instagramUrl} target="_blank" rel="noreferrer">
+							<AtSignIcon />
+							Instagram
+						</a>
+					</Button>
+				) : null}
+				{enterprise.websiteUrl ? (
+					<Button asChild variant="outline" className="justify-start" size="sm">
+						<a href={enterprise.websiteUrl} target="_blank" rel="noreferrer">
+							<ExternalLinkIcon />
+							{enterprise.instagramUrl ? 'Web sitesi' : 'Web sitesi üzerinden iletişime geç'}
+						</a>
+					</Button>
+				) : null}
+				{!enterprise.instagramUrl && !enterprise.websiteUrl ? (
+					<p className="text-sm text-muted-foreground">
+						Bu girişim için herkese açık bir iletişim bağlantısı yok.
+					</p>
+				) : null}
+			</section>
 
 			<FactGroup label="Ülkeler">
 				<div className="flex flex-wrap gap-1.5">

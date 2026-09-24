@@ -7,6 +7,75 @@ export type SitemapEntry = {
 
 const STATIC_SITEMAP_ENTRIES: Array<SitemapEntry> = [{ path: '/' }]
 
+export type RssItem = {
+	title: string
+	path: string
+	description: string
+	publishedAt: string
+}
+
+export function buildRecentEnterprisesRss(items: Array<RssItem>): string {
+	const body = items
+		.map((item) => {
+			const link = `${SITE_ORIGIN}${normalizeIndexablePath(item.path)}`
+			return [
+				'    <item>',
+				`      <title>${escapeXml(item.title)}</title>`,
+				`      <link>${escapeXml(link)}</link>`,
+				`      <guid>${escapeXml(link)}</guid>`,
+				`      <description>${escapeXml(item.description)}</description>`,
+				`      <pubDate>${escapeXml(toRfc822(item.publishedAt))}</pubDate>`,
+				'    </item>',
+			].join('\n')
+		})
+		.join('\n')
+
+	return [
+		'<?xml version="1.0" encoding="UTF-8"?>',
+		'<rss version="2.0">',
+		'  <channel>',
+		'    <title>Sosyal Girişimler Rehberi — Son eklenenler</title>',
+		`    <link>${SITE_ORIGIN}/</link>`,
+		'    <description>Rehbere yeni eklenen sosyal girişimler.</description>',
+		`    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>`,
+		body,
+		'  </channel>',
+		'</rss>',
+		'',
+	]
+		.filter((line) => line.length > 0)
+		.join('\n')
+}
+
+function toRfc822(value: string): string {
+	const normalized = value.includes('T') ? value : `${value.replace(' ', 'T')}Z`
+	const date = new Date(normalized)
+	return Number.isNaN(date.getTime()) ? new Date(0).toUTCString() : date.toUTCString()
+}
+
+export function buildEnterpriseJsonLd(input: {
+	name: string
+	description: string
+	canonicalUrl: string
+	websiteUrl?: string | null
+	instagramUrl?: string | null
+	imageUrl?: string | null
+}): string {
+	const sameAs = [input.websiteUrl, input.instagramUrl].filter(
+		(value): value is string => Boolean(value),
+	)
+	return JSON.stringify({
+		'@context': 'https://schema.org',
+		'@type': 'Organization',
+		name: input.name,
+		description: input.description,
+		url: input.websiteUrl || input.canonicalUrl,
+		mainEntityOfPage: input.canonicalUrl,
+		...(input.imageUrl ? { image: input.imageUrl } : {}),
+		...(sameAs.length > 0 ? { sameAs } : {}),
+	}).replace(/</g, '\\u003c')
+}
+
 export function buildRobotsTxt(): string {
 	return [
 		'User-agent: *',

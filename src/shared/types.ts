@@ -91,10 +91,21 @@ export type EnterpriseSummary = Pick<
 	| 'businessModels'
 	| 'countries'
 	| 'sdgs'
->
+> & {
+	createdAt: string
+}
+
+export type EnterpriseNeighbor = {
+	slug: string
+	name: string
+}
 
 export type EnterpriseDetail = Enterprise & {
 	related: Array<EnterpriseSummary>
+	previous: EnterpriseNeighbor | null
+	next: EnterpriseNeighbor | null
+	supportCount: number
+	supported: boolean
 }
 
 export type EditSuggestionStatus = 'pending' | 'applied' | 'rejected'
@@ -125,6 +136,7 @@ export type Submission = {
 	websiteUrl: string | null
 	problem: string | null
 	solution: string | null
+	imageKey: string | null
 	status: SubmissionStatus
 	enterpriseId: string | null
 	rejectionReason: string | null
@@ -218,6 +230,7 @@ export type SubmissionInput = {
 	websiteUrl?: string
 	problem?: string
 	solution?: string
+	imageKey?: string
 }
 
 export type DraftGalleryItem = {

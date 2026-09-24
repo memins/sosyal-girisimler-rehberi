@@ -197,6 +197,18 @@ export function SubmissionsListPage() {
 								{openSubmission.solution && (
 									<DetailRow label="Bunu nasıl yapıyor?" value={openSubmission.solution} />
 								)}
+								{openSubmission.imageKey && (
+									<DetailRow
+										label="Görsel"
+										value={
+											<img
+												src={`/api/media/${openSubmission.imageKey}`}
+												alt={`${openSubmission.name} görseli`}
+												className="max-h-48 rounded-lg object-cover"
+											/>
+										}
+									/>
+								)}
 								{openSubmission.rejectionReason && (
 									<DetailRow
 										label="Red gerekçesi"
