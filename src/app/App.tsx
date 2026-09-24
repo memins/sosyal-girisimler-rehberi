@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { CookieConsent } from '@/components/cookie-consent'
 import { ScrollToTop } from '@/components/scroll-to-top'
 import { ErrorBoundary } from './ErrorBoundary'
 import { SiteShell } from './layout/SiteShell'
@@ -68,6 +69,7 @@ export function App() {
 	return (
 		<ErrorBoundary>
 			<ScrollToTop />
+			<CookieConsent />
 			<Routes>
 				<Route element={<SiteShell />}>
 					<Route path="/" element={<HomePage />} />
