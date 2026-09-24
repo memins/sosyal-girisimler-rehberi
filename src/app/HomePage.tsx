@@ -122,6 +122,17 @@ function HeroSection({ query, onQueryChange, onSubmit, data }: HeroSectionProps)
 							<ArrowRightIcon />
 						</Button>
 					</form>
+					{data?.stats ? (
+						<p className="text-sm text-muted-foreground lg:hidden">
+							<span className="font-semibold text-foreground">
+								{data.stats.enterprises} girişim
+							</span>
+							{' · '}
+							<span className="font-semibold text-foreground">
+								{data.stats.countries} ülke
+							</span>
+						</p>
+					) : null}
 					<div className="flex flex-wrap items-center gap-2">
 						<span className="text-xs text-muted-foreground">Popüler aramalar:</span>
 						{POPULAR_CATEGORIES.map((item) => (
