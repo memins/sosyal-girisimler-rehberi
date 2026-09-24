@@ -812,6 +812,7 @@ async function mapEnterpriseSummaries(
 			businessModels: enterprise.businessModels,
 			countries: enterprise.countries,
 			sdgs: enterprise.sdgs,
+			createdAt: enterprise.createdAt,
 		}
 	})
 }

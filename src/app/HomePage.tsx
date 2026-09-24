@@ -329,6 +329,7 @@ function HomeContent({ data }: HomeContentProps) {
 					title="Son eklenenler"
 					items={data.recent}
 					linkTo="/arama?sort=newest"
+					showAddedAt
 				/>
 			)}
 
@@ -365,9 +366,16 @@ interface EnterpriseRowSectionProps {
 	title: string
 	items: ReadonlyArray<EnterpriseSummary>
 	linkTo: string
+	showAddedAt?: boolean
 }
 
-function EnterpriseRowSection({ eyebrow, title, items, linkTo }: EnterpriseRowSectionProps) {
+function EnterpriseRowSection({
+	eyebrow,
+	title,
+	items,
+	linkTo,
+	showAddedAt = false,
+}: EnterpriseRowSectionProps) {
 	return (
 		<section className="flex flex-col gap-6">
 			<div className="flex items-end justify-between gap-4">
@@ -386,7 +394,11 @@ function EnterpriseRowSection({ eyebrow, title, items, linkTo }: EnterpriseRowSe
 			</div>
 			<div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 				{items.slice(0, 6).map((enterprise) => (
-					<EnterpriseCard key={enterprise.id} enterprise={enterprise} />
+					<EnterpriseCard
+						key={enterprise.id}
+						enterprise={enterprise}
+						showAddedAt={showAddedAt}
+					/>
 				))}
 			</div>
 		</section>

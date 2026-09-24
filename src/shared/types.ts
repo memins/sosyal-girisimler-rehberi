@@ -91,7 +91,9 @@ export type EnterpriseSummary = Pick<
 	| 'businessModels'
 	| 'countries'
 	| 'sdgs'
->
+> & {
+	createdAt: string
+}
 
 export type EnterpriseNeighbor = {
 	slug: string

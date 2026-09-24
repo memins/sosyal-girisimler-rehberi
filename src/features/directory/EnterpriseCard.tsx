@@ -1,13 +1,15 @@
 import { ArrowUpRightIcon, GlobeIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { EnterpriseSummary } from '@/shared/types'
+import { formatAddedAgo } from '@/lib/relative-time'
 import { Badge } from '@/components/ui/badge'
 
 interface EnterpriseCardProps {
 	enterprise: EnterpriseSummary
+	showAddedAt?: boolean
 }
 
-export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
+export function EnterpriseCard({ enterprise, showAddedAt = false }: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
 	const primaryBusinessModel = enterprise.businessModels?.[0]
 
@@ -72,6 +74,11 @@ export function EnterpriseCard({ enterprise }: EnterpriseCardProps) {
 				<p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
 					{enterprise.shortDescription}
 				</p>
+				{showAddedAt && enterprise.createdAt ? (
+					<p className="text-xs font-medium text-muted-foreground">
+						{formatAddedAgo(enterprise.createdAt)}
+					</p>
+				) : null}
 			</div>
 		</Link>
 	)
