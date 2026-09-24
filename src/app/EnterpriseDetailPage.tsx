@@ -251,6 +251,7 @@ export function EnterpriseDetailPage() {
 						title="Sosyal etki"
 						body={enterprise.impact}
 					/>
+					{enterprise.websiteUrl && <WebsiteEmbed url={enterprise.websiteUrl} name={enterprise.name} />}
 					{enterprise.longContent && (
 						<section className="prose prose-neutral max-w-none dark:prose-invert">
 							<p>{enterprise.longContent}</p>
@@ -354,6 +355,35 @@ function DetailSection({ accent, icon: Icon, title, body }: DetailSectionProps) 
 				<h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
 			</div>
 			<p className="max-w-2xl text-base leading-relaxed text-foreground/85">{body}</p>
+		</section>
+	)
+}
+
+function WebsiteEmbed({ url, name }: { url: string; name: string }) {
+	const [isOpen, setIsOpen] = useState(false)
+
+	return (
+		<section className="flex flex-col gap-3 rounded-2xl border border-border bg-card/40 p-4">
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="flex flex-col gap-1">
+					<h2 className="text-lg font-semibold">Site içinde aç</h2>
+					<p className="text-sm text-muted-foreground">
+						{name} bağlantısını bu sayfadan ayrılmadan görüntüleyebilirsin.
+					</p>
+				</div>
+				<Button type="button" variant="outline" onClick={() => setIsOpen((open) => !open)}>
+					{isOpen ? 'Kapat' : 'Sayfada aç'}
+				</Button>
+			</div>
+			{isOpen ? (
+				<iframe
+					title={`${name} web sitesi`}
+					src={url}
+					className="h-[28rem] w-full rounded-xl border border-border bg-background"
+					loading="lazy"
+					sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+				/>
+			) : null}
 		</section>
 	)
 }
