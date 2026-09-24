@@ -33,6 +33,7 @@ type AdminSummary = {
 	enterprises: number
 	pendingSubmissions: number
 	editorialLists: number
+	newsletterSubscribers?: number
 }
 
 export async function getHome(): Promise<HomePayload> {
@@ -51,6 +52,12 @@ export async function listEnterprises(searchParams: URLSearchParams): Promise<Li
 
 export async function getEnterprise(slug: string): Promise<EnterpriseDetail> {
 	return apiGet(`/api/enterprises/${encodeURIComponent(slug)}`)
+}
+
+export async function subscribeNewsletter(
+	email: string,
+): Promise<{ ok: true; alreadySubscribed: boolean }> {
+	return apiPost('/api/newsletter', { email })
 }
 
 export async function createSubmission(input: SubmissionInput): Promise<Submission> {

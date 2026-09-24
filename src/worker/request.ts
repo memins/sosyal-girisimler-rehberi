@@ -92,6 +92,14 @@ function parseSort(value: string | null): EnterpriseSort {
 	return 'featured'
 }
 
+export function validateNewsletterEmail(value: unknown): { ok: true; email: string } | { ok: false; message: string } {
+	const email = readString(value).toLowerCase()
+	if (!isEmail(email) || email.length > 200) {
+		return { ok: false, message: 'Geçerli bir e-posta adresi girin.' }
+	}
+	return { ok: true, email }
+}
+
 export function validateSubmissionInput(input: SubmissionInput): SubmissionValidationResult {
 	const errors: Record<string, string> = {}
 	const name = readString(input.name)

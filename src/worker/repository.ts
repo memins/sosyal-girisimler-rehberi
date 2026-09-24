@@ -386,6 +386,33 @@ async function listRelatedEnterprises(
 	return mapEnterpriseSummaries(db, rows.results)
 }
 
+export async function subscribeNewsletter(
+	db: D1Database,
+	email: string,
+): Promise<{ alreadySubscribed: boolean }> {
+	const existing = await db
+		.prepare('SELECT id FROM newsletter_subscribers WHERE email = ? LIMIT 1')
+		.bind(email)
+		.first<{ id: string }>()
+
+	if (existing) return { alreadySubscribed: true }
+
+	await db
+		.prepare('INSERT INTO newsletter_subscribers (id, email) VALUES (?, ?)')
+		.bind(crypto.randomUUID(), email)
+		.run()
+
+	return { alreadySubscribed: false }
+}
+
+export async function countNewsletterSubscribers(db: D1Database): Promise<number> {
+	const row = await db
+		.prepare('SELECT COUNT(*) as count FROM newsletter_subscribers')
+		.first<{ count: number }>()
+
+	return Number(row?.count ?? 0)
+}
+
 export async function createSubmission(
 	db: D1Database,
 	input: SubmissionInput,

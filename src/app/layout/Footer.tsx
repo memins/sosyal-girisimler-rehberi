@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Container } from '@/components/layout/container'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Logomark } from '@/components/logomark'
+import { NewsletterForm } from '@/components/newsletter-form'
 
 const sections = [
 	{
@@ -50,6 +51,7 @@ export function Footer() {
 							Türkiye ve dünyadan sosyal girişimleri görünür kılan açık, gönüllü
 							sürdürülen bir rehber.
 						</p>
+						<NewsletterForm />
 					</div>
 					{sections.map((section) => (
 						<div key={section.title} className="flex flex-col gap-3">

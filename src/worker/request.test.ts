@@ -3,6 +3,7 @@ import {
 	parseEnterpriseFilters,
 	validateEditorialListInput,
 	validateEnterpriseInput,
+	validateNewsletterEmail,
 	validateSubmissionInput,
 } from './request'
 
@@ -61,6 +62,19 @@ describe('parseEnterpriseFilters', () => {
 			pageSize: 60,
 			sort: 'featured',
 		})
+	})
+})
+
+describe('validateNewsletterEmail', () => {
+	it('normalizes a valid address', () => {
+		expect(validateNewsletterEmail('  Editor@Example.com ')).toEqual({
+			ok: true,
+			email: 'editor@example.com',
+		})
+	})
+
+	it('rejects an invalid address', () => {
+		expect(validateNewsletterEmail('not-an-email').ok).toBe(false)
 	})
 })
 

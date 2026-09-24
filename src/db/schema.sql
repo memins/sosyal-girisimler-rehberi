@@ -142,6 +142,15 @@ CREATE TABLE IF NOT EXISTS editorial_list_items (
 	PRIMARY KEY (editorial_list_id, enterprise_id)
 );
 
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+	id TEXT PRIMARY KEY,
+	email TEXT NOT NULL UNIQUE,
+	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_created_at
+	ON newsletter_subscribers(created_at);
+
 CREATE TABLE IF NOT EXISTS feedback (
 	id TEXT PRIMARY KEY,
 	enterprise_id TEXT NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,

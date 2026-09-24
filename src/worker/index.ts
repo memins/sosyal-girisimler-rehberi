@@ -27,6 +27,7 @@ import {
 	validateEditorialListInput,
 	validateEnterpriseInput,
 	isSubmissionImageKey,
+	validateNewsletterEmail,
 	validateSubmissionInput,
 } from './request'
 import {
@@ -34,7 +35,9 @@ import {
 	applyEditSuggestion,
 	approveSubmission,
 	createEditSuggestion,
+	countNewsletterSubscribers,
 	createSubmission,
+	subscribeNewsletter,
 	createTaxonomyItem,
 	deleteEnterprise,
 	deleteEnterpriseMedia,
@@ -275,6 +278,10 @@ async function handleApiRequest(
 		return uploadSubmissionImage(request, env)
 	}
 
+	if (request.method === 'POST' && pathname === '/api/newsletter') {
+		return subscribeToNewsletter(request, env)
+	}
+
 	if (request.method === 'POST' && pathname === '/api/submissions') {
 		const body = (await readJsonBody(request)) as SubmissionInput
 		const validation = validateSubmissionInput(body)
@@ -491,10 +498,18 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 			listEditorialLists(env.DB, false),
 		])
 
+		let newsletterSubscribers = 0
+		try {
+			newsletterSubscribers = await countNewsletterSubscribers(env.DB)
+		} catch {
+			newsletterSubscribers = 0
+		}
+
 		return json({
 			enterprises: enterprises.total,
 			pendingSubmissions: submissions.filter((submission) => submission.status === 'pending').length,
 			editorialLists: editorialLists.length,
+			newsletterSubscribers,
 		})
 	}
 
@@ -831,6 +846,32 @@ const SUBMISSION_IMAGE_TYPES = new Set([
 	'image/avif',
 ])
 const SUBMISSION_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+async function subscribeToNewsletter(request: Request, env: Env): Promise<Response> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const rateKey = `newsletter:${ip}`
+	const attempts = Number(await env.CACHE.get(rateKey))
+	if (Number.isFinite(attempts) && attempts >= 10) {
+		return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
+	}
+
+	const body = (await readJsonBody(request)) as { email?: unknown }
+	const validation = validateNewsletterEmail(body.email)
+	if (!validation.ok) {
+		return apiError('bad_request', validation.message, 422)
+	}
+
+	await env.CACHE.put(rateKey, String((Number.isFinite(attempts) ? attempts : 0) + 1), {
+		expirationTtl: 60 * 60,
+	})
+
+	try {
+		const result = await subscribeNewsletter(env.DB, validation.email)
+		return json({ ok: true, ...result })
+	} catch (error) {
+		return apiError('internal_error', errorMessage(error), 500)
+	}
+}
 
 async function uploadSubmissionImage(request: Request, env: Env): Promise<Response> {
 	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
