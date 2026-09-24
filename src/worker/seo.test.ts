@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecentEnterprisesRss, buildRobotsTxt, buildSitemapXml } from './seo'
+import {
+	buildEnterpriseJsonLd,
+	buildRecentEnterprisesRss,
+	buildRobotsTxt,
+	buildSitemapXml,
+} from './seo'
+
+describe('buildEnterpriseJsonLd', () => {
+	it('describes a published enterprise as schema.org Organization', () => {
+		const json = JSON.parse(
+			buildEnterpriseJsonLd({
+				name: 'Fazla',
+				description: 'Gıda israfını azaltır.',
+				canonicalUrl: 'https://sosyal.genclink.com/girisimler/fazla',
+				websiteUrl: 'https://fazla.com',
+				instagramUrl: 'https://instagram.com/fazla',
+			}),
+		) as { '@type': string; name: string; sameAs: Array<string> }
+
+		expect(json['@type']).toBe('Organization')
+		expect(json.name).toBe('Fazla')
+		expect(json.sameAs).toContain('https://fazla.com')
+	})
+})
 
 describe('buildRobotsTxt', () => {
 	it('allows public crawling, blocks private surfaces, and links the canonical sitemap', () => {

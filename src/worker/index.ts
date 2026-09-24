@@ -65,7 +65,13 @@ import {
 } from './repository'
 import type { TaxonomyType, UpdateTaxonomyInput, UpsertTaxonomyInput } from '@/shared/types'
 import { apiError, json, readJsonBody } from './responses'
-import { buildRecentEnterprisesRss, buildRobotsTxt, buildSitemapXml, type SitemapEntry } from './seo'
+import {
+	buildEnterpriseJsonLd,
+	buildRecentEnterprisesRss,
+	buildRobotsTxt,
+	buildSitemapXml,
+	type SitemapEntry,
+} from './seo'
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -1044,6 +1050,19 @@ async function renderEnterpriseHtml(
 		.on('link[rel="canonical"]', {
 			element(el) {
 				el.setAttribute('href', canonicalUrl)
+			},
+		})
+		.on('head', {
+			element(el) {
+				const jsonLd = buildEnterpriseJsonLd({
+					name: enterprise.name,
+					description,
+					canonicalUrl,
+					websiteUrl: enterprise.websiteUrl,
+					instagramUrl: enterprise.instagramUrl,
+					imageUrl,
+				})
+				el.append(`<script type="application/ld+json">${jsonLd}</script>`, { html: true })
 			},
 		})
 		// Drop any image:width/height meta because we no longer guarantee 1200×630

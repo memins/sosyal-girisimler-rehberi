@@ -53,6 +53,29 @@ function toRfc822(value: string): string {
 	return Number.isNaN(date.getTime()) ? new Date(0).toUTCString() : date.toUTCString()
 }
 
+export function buildEnterpriseJsonLd(input: {
+	name: string
+	description: string
+	canonicalUrl: string
+	websiteUrl?: string | null
+	instagramUrl?: string | null
+	imageUrl?: string | null
+}): string {
+	const sameAs = [input.websiteUrl, input.instagramUrl].filter(
+		(value): value is string => Boolean(value),
+	)
+	return JSON.stringify({
+		'@context': 'https://schema.org',
+		'@type': 'Organization',
+		name: input.name,
+		description: input.description,
+		url: input.websiteUrl || input.canonicalUrl,
+		mainEntityOfPage: input.canonicalUrl,
+		...(input.imageUrl ? { image: input.imageUrl } : {}),
+		...(sameAs.length > 0 ? { sameAs } : {}),
+	}).replace(/</g, '\\u003c')
+}
+
 export function buildRobotsTxt(): string {
 	return [
 		'User-agent: *',
