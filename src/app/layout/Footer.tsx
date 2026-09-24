@@ -71,18 +71,7 @@ export function Footer() {
 					))}
 				</div>
 				<div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground md:flex-row md:items-center">
-					<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-						<p>© {new Date().getFullYear()} Sosyal Girişimler Rehberi · Açık kaynak</p>
-						<span aria-hidden="true" className="hidden text-border md:inline">
-							·
-						</span>
-						<Link
-							to="/admin"
-							className="text-muted-foreground/60 transition hover:text-foreground"
-						>
-							Editör girişi
-						</Link>
-					</div>
+					<p>© {new Date().getFullYear()} Sosyal Girişimler Rehberi · Açık kaynak</p>
 					<div className="flex items-center gap-3">
 						<span>Tema</span>
 						<ThemeToggle />
