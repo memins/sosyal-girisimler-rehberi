@@ -283,6 +283,9 @@ async function handleApiRequest(
 		/^\/api\/enterprises\/([^/]+)\/edit-suggestions$/,
 	)
 	if (request.method === 'POST' && editSuggestionMatch) {
+		if (!(await allowPublicWrite(env, request, 'edit-suggestion', 10))) {
+			return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
+		}
 		const slug = decodeURIComponent(editSuggestionMatch[1])
 		const body = (await readJsonBody(request)) as {
 			message?: unknown
@@ -312,6 +315,9 @@ async function handleApiRequest(
 	}
 
 	if (request.method === 'POST' && pathname === '/api/submissions') {
+		if (!(await allowPublicWrite(env, request, 'submission', 10))) {
+			return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
+		}
 		const body = (await readJsonBody(request)) as SubmissionInput
 		const validation = validateSubmissionInput(body)
 
@@ -843,6 +849,22 @@ function hasValidOrigin(request: Request): boolean {
 	}
 
 	return new URL(origin).origin === new URL(request.url).origin
+}
+
+async function allowPublicWrite(
+	env: Env,
+	request: Request,
+	action: string,
+	limit: number,
+): Promise<boolean> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const key = `public:${action}:${ip}`
+	const attempts = Number(await env.CACHE.get(key))
+	if (Number.isFinite(attempts) && attempts >= limit) return false
+	await env.CACHE.put(key, String((Number.isFinite(attempts) ? attempts : 0) + 1), {
+		expirationTtl: 60 * 60,
+	})
+	return true
 }
 
 async function visitorKey(request: Request): Promise<string> {
