@@ -390,26 +390,30 @@ function NeighborLink({
 function EnterpriseFactsCard({ enterprise }: { enterprise: EnterpriseDetail }) {
 	return (
 		<div className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
-			{(enterprise.websiteUrl || enterprise.instagramUrl) && (
-				<div className="flex flex-col gap-2">
-					{enterprise.websiteUrl && (
-						<Button asChild variant="outline" className="justify-start" size="sm">
-							<a href={enterprise.websiteUrl} target="_blank" rel="noreferrer">
-								<ExternalLinkIcon />
-								Web sitesi
-							</a>
-						</Button>
-					)}
-					{enterprise.instagramUrl && (
-						<Button asChild variant="outline" className="justify-start" size="sm">
-							<a href={enterprise.instagramUrl} target="_blank" rel="noreferrer">
-								<AtSignIcon />
-								Instagram
-							</a>
-						</Button>
-					)}
-				</div>
-			)}
+			<section className="flex flex-col gap-2">
+				<h2 className="text-sm font-semibold">Bu girişimle nasıl iletişime geçebilirim?</h2>
+				{enterprise.instagramUrl ? (
+					<Button asChild variant="outline" className="justify-start" size="sm">
+						<a href={enterprise.instagramUrl} target="_blank" rel="noreferrer">
+							<AtSignIcon />
+							Instagram
+						</a>
+					</Button>
+				) : null}
+				{enterprise.websiteUrl ? (
+					<Button asChild variant="outline" className="justify-start" size="sm">
+						<a href={enterprise.websiteUrl} target="_blank" rel="noreferrer">
+							<ExternalLinkIcon />
+							{enterprise.instagramUrl ? 'Web sitesi' : 'Web sitesi üzerinden iletişime geç'}
+						</a>
+					</Button>
+				) : null}
+				{!enterprise.instagramUrl && !enterprise.websiteUrl ? (
+					<p className="text-sm text-muted-foreground">
+						Bu girişim için herkese açık bir iletişim bağlantısı yok.
+					</p>
+				) : null}
+			</section>
 
 			<FactGroup label="Ülkeler">
 				<div className="flex flex-wrap gap-1.5">
