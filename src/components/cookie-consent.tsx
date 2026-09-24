@@ -29,7 +29,7 @@ export function CookieConsent() {
 			role="dialog"
 			aria-labelledby="cookie-consent-title"
 			aria-describedby="cookie-consent-description"
-			className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur-md"
+			className="fixed inset-x-0 bottom-16 z-50 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur-md md:bottom-0"
 		>
 			<div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
 				<div className="flex flex-col gap-1">
