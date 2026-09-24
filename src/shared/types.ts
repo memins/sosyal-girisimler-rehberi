@@ -93,8 +93,15 @@ export type EnterpriseSummary = Pick<
 	| 'sdgs'
 >
 
+export type EnterpriseNeighbor = {
+	slug: string
+	name: string
+}
+
 export type EnterpriseDetail = Enterprise & {
 	related: Array<EnterpriseSummary>
+	previous: EnterpriseNeighbor | null
+	next: EnterpriseNeighbor | null
 }
 
 export type EditSuggestionStatus = 'pending' | 'applied' | 'rejected'

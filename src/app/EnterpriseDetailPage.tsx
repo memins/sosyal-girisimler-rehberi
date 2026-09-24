@@ -1,5 +1,7 @@
 import {
 	AlertCircleIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
 	AtSignIcon,
 	ExternalLinkIcon,
 	HeartIcon,
@@ -190,6 +192,14 @@ export function EnterpriseDetailPage() {
 				</div>
 			</header>
 
+			<nav
+				aria-label="Girişimler arasında gezin"
+				className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between"
+			>
+				<NeighborLink direction="previous" neighbor={enterprise.previous} />
+				<NeighborLink direction="next" neighbor={enterprise.next} />
+			</nav>
+
 			<div className="grid gap-12 md:grid-cols-[minmax(0,1fr)_320px]">
 				<div className="flex flex-col gap-12">
 					<DetailSection
@@ -314,6 +324,35 @@ function DetailSection({ accent, icon: Icon, title, body }: DetailSectionProps) 
 			</div>
 			<p className="max-w-2xl text-base leading-relaxed text-foreground/85">{body}</p>
 		</section>
+	)
+}
+
+function NeighborLink({
+	direction,
+	neighbor,
+}: {
+	direction: 'previous' | 'next'
+	neighbor: EnterpriseDetail['previous']
+}) {
+	const isPrevious = direction === 'previous'
+	if (!neighbor) {
+		return <span className="hidden flex-1 sm:block" />
+	}
+
+	return (
+		<Link
+			to={`/girisimler/${neighbor.slug}`}
+			className={`flex min-w-0 flex-1 flex-col gap-1 rounded-xl border border-border bg-card/40 px-4 py-3 text-sm transition hover:border-primary/40 hover:bg-card ${
+				isPrevious ? 'sm:items-start' : 'sm:items-end'
+			}`}
+		>
+			<span className="inline-flex items-center gap-1 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
+				{isPrevious ? <ChevronLeftIcon className="size-3.5" /> : null}
+				{isPrevious ? 'Önceki girişim' : 'Sonraki girişim'}
+				{isPrevious ? null : <ChevronRightIcon className="size-3.5" />}
+			</span>
+			<span className="truncate font-medium">{neighbor.name}</span>
+		</Link>
 	)
 }
 

@@ -328,7 +328,37 @@ export async function getEnterpriseDetailBySlug(
 	}
 
 	const related = await listRelatedEnterprises(db, enterprise)
-	return { ...enterprise, related }
+	const [previous, next] = await Promise.all([
+		getPublishedNeighbor(db, enterprise, 'previous'),
+		getPublishedNeighbor(db, enterprise, 'next'),
+	])
+	return { ...enterprise, related, previous, next }
+}
+
+async function getPublishedNeighbor(
+	db: D1Database,
+	enterprise: Enterprise,
+	direction: 'previous' | 'next',
+): Promise<{ slug: string; name: string } | null> {
+	const older = direction === 'previous'
+	const comparison = older ? '<' : '>'
+	const order = older ? 'DESC' : 'ASC'
+	const row = await db
+		.prepare(
+			`SELECT slug, name FROM enterprises
+				WHERE status = 'published'
+					AND id != ?
+					AND (
+						created_at ${comparison} ?
+						OR (created_at = ? AND id ${comparison} ?)
+					)
+				ORDER BY created_at ${order}, id ${order}
+				LIMIT 1`,
+		)
+		.bind(enterprise.id, enterprise.createdAt, enterprise.createdAt, enterprise.id)
+		.first<{ slug: string; name: string }>()
+
+	return row ?? null
 }
 
 async function listRelatedEnterprises(
