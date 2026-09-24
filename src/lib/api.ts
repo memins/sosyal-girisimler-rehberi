@@ -57,6 +57,16 @@ export async function createSubmission(input: SubmissionInput): Promise<Submissi
 	return apiPost('/api/submissions', input)
 }
 
+export async function uploadSubmissionImage(file: File): Promise<{ key: string }> {
+	const body = new FormData()
+	body.set('file', file)
+	const response = await fetch('/api/submissions/media', {
+		method: 'POST',
+		body,
+	})
+	return parseResponse(response)
+}
+
 export async function submitEditSuggestion(
 	enterpriseSlug: string,
 	input: CreateEditSuggestionInput,

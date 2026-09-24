@@ -78,6 +78,22 @@ describe('validateSubmissionInput', () => {
 		expect(result.ok).toBe(true)
 	})
 
+	it('rejects an image key outside the submissions prefix', () => {
+		const result = validateSubmissionInput({
+			name: 'Fazla',
+			description: 'Gida israfini azaltan sosyal girisim.',
+			contactEmail: 'editor@example.com',
+			imageKey: 'uploads/not-allowed.png',
+		})
+
+		expect(result).toEqual({
+			ok: false,
+			errors: {
+				imageKey: 'Görsel yüklemesi geçersiz.',
+			},
+		})
+	})
+
 	it('rejects incomplete suggestions with field errors', () => {
 		const result = validateSubmissionInput({
 			name: '',

@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS submissions (
 	website_url TEXT,
 	problem TEXT,
 	solution TEXT,
+	image_key TEXT,
 	status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
 	enterprise_id TEXT REFERENCES enterprises(id) ON DELETE SET NULL,
 	rejection_reason TEXT,

@@ -3,6 +3,7 @@ import {
 	CheckCircle2Icon,
 	CheckIcon,
 	ClipboardListIcon,
+	ImageIcon,
 	Loader2Icon,
 	SendIcon,
 	UserCheckIcon,
@@ -12,7 +13,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { createSubmission } from '@/lib/api'
+import { createSubmission, uploadSubmissionImage } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -77,6 +78,9 @@ const defaultValues: SubmissionFormValues = {
 
 export function SubmissionPage() {
 	const [isSuccess, setIsSuccess] = useState(false)
+	const [imageKey, setImageKey] = useState<string | null>(null)
+	const [imageError, setImageError] = useState<string | null>(null)
+	const [isUploadingImage, setIsUploadingImage] = useState(false)
 
 	const form = useForm<SubmissionFormValues>({
 		resolver: zodResolver(submissionSchema),
@@ -94,6 +98,7 @@ export function SubmissionPage() {
 				websiteUrl: parsed.websiteUrl,
 				problem: parsed.problem || undefined,
 				solution: parsed.solution || undefined,
+				imageKey: imageKey ?? undefined,
 			})
 			setIsSuccess(true)
 			toast.success('Öneriniz alındı.')
@@ -104,7 +109,24 @@ export function SubmissionPage() {
 
 	function handleReset() {
 		form.reset(defaultValues)
+		setImageKey(null)
+		setImageError(null)
 		setIsSuccess(false)
+	}
+
+	async function handleImageSelect(file: File | null) {
+		if (!file) return
+		setIsUploadingImage(true)
+		setImageError(null)
+		try {
+			const uploaded = await uploadSubmissionImage(file)
+			setImageKey(uploaded.key)
+		} catch (error) {
+			setImageKey(null)
+			setImageError(error instanceof Error ? error.message : 'Görsel yüklenemedi.')
+		} finally {
+			setIsUploadingImage(false)
+		}
 	}
 
 	if (isSuccess) {
@@ -202,6 +224,57 @@ export function SubmissionPage() {
 								</FormItem>
 							)}
 						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<label htmlFor="submission-image" className="text-sm font-medium">
+							Görsel
+						</label>
+						{imageKey ? (
+							<div className="flex items-center gap-3 rounded-xl border border-border bg-card/40 p-3">
+								<img
+									src={`/api/media/${imageKey}`}
+									alt="Yüklenen girişim görseli"
+									className="size-16 rounded-lg object-cover"
+								/>
+								<div className="flex flex-col gap-1">
+									<p className="text-sm">Görsel eklendi</p>
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={() => setImageKey(null)}
+									>
+										Kaldır
+									</Button>
+								</div>
+							</div>
+						) : (
+							<label
+								htmlFor="submission-image"
+								className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground transition hover:bg-secondary/40"
+							>
+								{isUploadingImage ? (
+									<Loader2Icon className="size-5 animate-spin" />
+								) : (
+									<ImageIcon className="size-5" />
+								)}
+								<span>{isUploadingImage ? 'Yükleniyor…' : 'Logo veya kapak görseli yükle'}</span>
+								<span className="text-xs">JPEG, PNG, WebP, GIF veya AVIF · en fazla 5 MB</span>
+							</label>
+						)}
+						<input
+							id="submission-image"
+							type="file"
+							accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+							className="sr-only"
+							disabled={isUploadingImage}
+							onChange={(event) => {
+								void handleImageSelect(event.target.files?.[0] ?? null)
+								event.target.value = ''
+							}}
+						/>
+						{imageError && <p className="text-sm text-destructive">{imageError}</p>}
 					</div>
 
 					<FormField

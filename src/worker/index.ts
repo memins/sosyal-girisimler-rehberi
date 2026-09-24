@@ -26,6 +26,7 @@ import {
 	parseEnterpriseFilters,
 	validateEditorialListInput,
 	validateEnterpriseInput,
+	isSubmissionImageKey,
 	validateSubmissionInput,
 } from './request'
 import {
@@ -221,6 +222,10 @@ async function handleApiRequest(
 		} catch (error) {
 			return apiError('bad_request', errorMessage(error), 400)
 		}
+	}
+
+	if (request.method === 'POST' && pathname === '/api/submissions/media') {
+		return uploadSubmissionImage(request, env)
 	}
 
 	if (request.method === 'POST' && pathname === '/api/submissions') {
@@ -769,6 +774,53 @@ async function recordFailedAuthAttempt(env: Env, key: string): Promise<void> {
 
 async function clearRateLimit(env: Env, key: string): Promise<void> {
 	await env.CACHE.delete(key)
+}
+
+const SUBMISSION_IMAGE_TYPES = new Set([
+	'image/jpeg',
+	'image/png',
+	'image/webp',
+	'image/gif',
+	'image/avif',
+])
+const SUBMISSION_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+async function uploadSubmissionImage(request: Request, env: Env): Promise<Response> {
+	const ip = request.headers.get('cf-connecting-ip') ?? 'unknown'
+	const rateKey = `submission-upload:${ip}`
+	const attempts = Number(await env.CACHE.get(rateKey))
+	if (Number.isFinite(attempts) && attempts >= 20) {
+		return apiError('bad_request', 'Çok fazla görsel yüklendi. Lütfen daha sonra tekrar deneyin.', 429)
+	}
+
+	const formData = await request.formData()
+	const file = formData.get('file')
+	if (!(file instanceof File)) {
+		return apiError('bad_request', 'Yüklenecek dosya bulunamadı.', 400)
+	}
+	if (!SUBMISSION_IMAGE_TYPES.has(file.type)) {
+		return apiError('bad_request', 'Yalnızca JPEG, PNG, WebP, GIF veya AVIF yükleyebilirsiniz.', 400)
+	}
+	if (file.size <= 0 || file.size > SUBMISSION_IMAGE_MAX_BYTES) {
+		return apiError('bad_request', 'Görsel 5 MB’den küçük olmalı.', 400)
+	}
+
+	const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80) || 'image'
+	const objectKey = `submissions/${crypto.randomUUID()}-${safeName}`
+	if (!isSubmissionImageKey(objectKey)) {
+		return apiError('bad_request', 'Görsel yüklemesi geçersiz.', 400)
+	}
+
+	await env.MEDIA.put(objectKey, file.stream(), {
+		httpMetadata: { contentType: file.type },
+	})
+	await env.CACHE.put(
+		rateKey,
+		String((Number.isFinite(attempts) ? attempts : 0) + 1),
+		{ expirationTtl: 60 * 60 },
+	)
+
+	return json({ key: objectKey }, { status: 201 })
 }
 
 async function uploadMedia(request: Request, env: Env): Promise<Response> {

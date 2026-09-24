@@ -125,6 +125,7 @@ export type Submission = {
 	websiteUrl: string | null
 	problem: string | null
 	solution: string | null
+	imageKey: string | null
 	status: SubmissionStatus
 	enterpriseId: string | null
 	rejectionReason: string | null
@@ -218,6 +219,7 @@ export type SubmissionInput = {
 	websiteUrl?: string
 	problem?: string
 	solution?: string
+	imageKey?: string
 }
 
 export type DraftGalleryItem = {

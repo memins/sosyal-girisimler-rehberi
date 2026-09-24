@@ -80,6 +80,7 @@ type SubmissionRow = {
 	website_url: string | null
 	problem: string | null
 	solution: string | null
+	image_key: string | null
 	status: 'pending' | 'approved' | 'rejected'
 	enterprise_id: string | null
 	rejection_reason: string | null
@@ -369,8 +370,9 @@ export async function createSubmission(
 				contact_email,
 				website_url,
 				problem,
-				solution
-			) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				solution,
+				image_key
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		)
 		.bind(
 			id,
@@ -380,6 +382,7 @@ export async function createSubmission(
 			input.websiteUrl ?? null,
 			input.problem ?? null,
 			input.solution ?? null,
+			input.imageKey ?? null,
 		)
 		.run()
 
@@ -520,6 +523,7 @@ export async function approveSubmission(db: D1Database, submissionId: string): P
 		countryCodes: [],
 		sdgIds: [],
 		websiteUrl: submission.websiteUrl ?? undefined,
+		logoKey: submission.imageKey ?? undefined,
 	})
 
 	await db
@@ -1005,6 +1009,7 @@ function mapSubmissionRow(row: SubmissionRow): Submission {
 		websiteUrl: row.website_url,
 		problem: row.problem,
 		solution: row.solution,
+		imageKey: row.image_key,
 		status: row.status,
 		enterpriseId: row.enterprise_id,
 		rejectionReason: row.rejection_reason,

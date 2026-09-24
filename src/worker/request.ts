@@ -32,6 +32,7 @@ type SubmissionInput = {
 	websiteUrl?: unknown
 	problem?: unknown
 	solution?: unknown
+	imageKey?: unknown
 }
 
 type EnterpriseInput = {
@@ -112,6 +113,11 @@ export function validateSubmissionInput(input: SubmissionInput): SubmissionValid
 
 	requireSafeUrl(errors, 'websiteUrl', websiteUrl)
 
+	const imageKey = readString(input.imageKey)
+	if (imageKey.length > 0 && !isSubmissionImageKey(imageKey)) {
+		errors.imageKey = 'Görsel yüklemesi geçersiz.'
+	}
+
 	if (Object.keys(errors).length > 0) {
 		return { ok: false, errors }
 	}
@@ -183,6 +189,10 @@ function parseSdgList(value: string | null): Array<number> {
 
 function readString(value: unknown): string {
 	return typeof value === 'string' ? value.trim() : ''
+}
+
+export function isSubmissionImageKey(value: string): boolean {
+	return /^submissions\/[A-Za-z0-9._-]+$/.test(value)
 }
 
 function isEmail(value: string): boolean {
