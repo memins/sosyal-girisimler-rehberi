@@ -48,6 +48,7 @@ import { Separator } from '@/components/ui/separator'
 import { ErrorBlock, RouteFallback } from '@/components/StateBlock'
 import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
 import { GalleryLightbox } from '@/features/directory/GalleryLightbox'
+import { PublicEnterpriseActions } from '@/features/directory/PublicEnterpriseActions'
 
 const SAVED_KEY = 'sgr:saved'
 
@@ -257,6 +258,8 @@ export function EnterpriseDetailPage() {
 					</div>
 				</div>
 			</header>
+
+			<PublicEnterpriseActions enterprise={enterprise} />
 
 			<nav
 				aria-label="Girişimler arasında gezin"
