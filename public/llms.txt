@@ -1,0 +1,19 @@
+# Sosyal Girişimler Rehberi
+
+> Türkiye ve dünyadan sosyal girişimleri, sivil toplum kuruluşlarını, sosyal kooperatifleri ve sorumlu şirketleri kategori, kurum türü, ülke ve BM Sürdürülebilir Kalkınma Amaçları (SKA) ile birlikte listeleyen açık ve ücretsiz bir Türkçe rehber. Genç Link tarafından yayınlanır.
+
+Her girişim profili; kısa tanım, çalışma alanı, çözüm yöntemi, sosyal etki, uzun tanıtım metni, web sitesi / Instagram bağlantıları, ülke ve ilgili SKA'ları içerir. İçerikler editör ekibi tarafından kontrol edilir.
+
+## Ana sayfalar
+
+- [Ana sayfa](https://sosyal.genclink.com/): Öne çıkan ve son eklenen girişimler, kategoriler
+- [Girişimler](https://sosyal.genclink.com/arama): Kategori, ülke, kurum türü ve SKA'ya göre filtrelenebilir tam liste
+- [İstihdam & Eğitim](https://sosyal.genclink.com/istihdam-ve-egitim): İstihdam ve eğitim alanındaki girişimler
+- [Hakkımızda](https://sosyal.genclink.com/hakkimizda): Rehberin amacı ve editoryal süreç
+- [Girişim ekle](https://sosyal.genclink.com/girisim-ekle): Yeni girişim önerme formu
+
+## Makine tarafından okunabilir kaynaklar
+
+- [Site haritası](https://sosyal.genclink.com/sitemap.xml): Tüm yayındaki girişim sayfaları
+- [RSS](https://sosyal.genclink.com/feed.xml): Son eklenen girişimler
+- Girişim sayfaları `https://sosyal.genclink.com/girisimler/<slug>` adresindedir ve schema.org Organization JSON-LD içerir.

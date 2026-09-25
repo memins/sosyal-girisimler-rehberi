@@ -80,6 +80,7 @@ export function buildRobotsTxt(): string {
 	return [
 		'User-agent: *',
 		'Allow: /',
+		'Allow: /api/media/',
 		'Disallow: /admin',
 		'Disallow: /api/',
 		'',
