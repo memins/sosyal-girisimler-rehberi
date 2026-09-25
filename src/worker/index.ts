@@ -64,6 +64,7 @@ import {
 	upsertEnterprise,
 } from './repository'
 import type { TaxonomyType, UpdateTaxonomyInput, UpsertTaxonomyInput } from '@/shared/types'
+import { AutofillError, autofillEnterprise } from './autofill'
 import { apiError, json, readJsonBody } from './responses'
 import {
 	buildEnterpriseJsonLd,
@@ -233,7 +234,7 @@ async function handleApiRequest(
 	}
 
 	if (request.method === 'GET' && pathname === '/api/meta') {
-		return json(await getDirectoryMeta(env.DB))
+		return withEdgeCache(request, ctx, 300, async () => json(await getDirectoryMeta(env.DB)))
 	}
 
 	if (request.method === 'GET' && pathname === '/api/home') {
@@ -241,7 +242,9 @@ async function handleApiRequest(
 	}
 
 	if (request.method === 'GET' && pathname === '/api/enterprises') {
-		return json(await listEnterprises(env.DB, parseEnterpriseFilters(url)))
+		return withEdgeCache(request, ctx, 60, async () =>
+			json(await listEnterprises(env.DB, parseEnterpriseFilters(url))),
+		)
 	}
 
 	const enterpriseMatch = pathname.match(/^\/api\/enterprises\/([^/]+)$/)
@@ -334,7 +337,9 @@ async function handleApiRequest(
 
 	const mediaMatch = pathname.match(/^\/api\/media\/(.+)$/)
 	if (request.method === 'GET' && mediaMatch) {
-		return getMedia(env, decodeURIComponent(mediaMatch[1]))
+		return withEdgeCache(request, ctx, 31536000, () =>
+			getMedia(env, decodeURIComponent(mediaMatch[1])),
+		)
 	}
 
 	if (pathname.startsWith('/api/admin/')) {
@@ -342,6 +347,30 @@ async function handleApiRequest(
 	}
 
 	return apiError('not_found', 'API rotası bulunamadı.', 404)
+}
+
+// Public, visitor-independent GET responses are kept in the Cloudflare edge
+// cache for a short TTL so filter/search traffic doesn't hit D1 every time.
+async function withEdgeCache(
+	request: Request,
+	ctx: ExecutionContext,
+	ttlSeconds: number,
+	produce: () => Promise<Response>,
+): Promise<Response> {
+	const cache = caches.default
+	const cacheKey = new Request(request.url, { method: 'GET' })
+	const cached = await cache.match(cacheKey)
+	if (cached) return cached
+
+	const response = await produce()
+	if (response.ok) {
+		response.headers.set(
+			'cache-control',
+			ttlSeconds >= 31536000 ? 'public, max-age=31536000, immutable' : `public, max-age=${ttlSeconds}`,
+		)
+		ctx.waitUntil(cache.put(cacheKey, response.clone()))
+	}
+	return response
 }
 
 async function handleCachedHome(env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -540,8 +569,13 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 			newsletterSubscribers = 0
 		}
 
+		const pendingReview = await env.DB.prepare(
+			'SELECT COUNT(*) AS count FROM enterprises WHERE needs_review = 1',
+		).first<{ count: number }>()
+
 		return json({
 			enterprises: enterprises.total,
+			pendingReview: pendingReview?.count ?? 0,
 			pendingSubmissions: submissions.filter((submission) => submission.status === 'pending').length,
 			editorialLists: editorialLists.length,
 			newsletterSubscribers,
@@ -569,6 +603,18 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 		} catch (error) {
 			return apiError('not_found', errorMessage(error), 404)
 		}
+	}
+
+	if (request.method === 'POST' && pathname === '/api/admin/enterprises/autofill') {
+		return handleAutofill(request, env)
+	}
+
+	const reviewMatch = pathname.match(/^\/api\/admin\/enterprises\/([^/]+)\/review$/)
+	if (request.method === 'POST' && reviewMatch) {
+		await env.DB.prepare('UPDATE enterprises SET needs_review = 0 WHERE id = ?')
+			.bind(decodeURIComponent(reviewMatch[1]))
+			.run()
+		return json({ ok: true })
 	}
 
 	if (request.method === 'POST' && pathname === '/api/admin/enterprises') {
@@ -955,14 +1001,10 @@ async function uploadSubmissionImage(request: Request, env: Env): Promise<Respon
 	}
 
 	const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 80) || 'image'
-	const objectKey = `submissions/${crypto.randomUUID()}-${safeName}`
+	const objectKey = await storeImage(env, `submissions/${crypto.randomUUID()}-${safeName}`, file)
 	if (!isSubmissionImageKey(objectKey)) {
 		return apiError('bad_request', 'Görsel yüklemesi geçersiz.', 400)
 	}
-
-	await env.MEDIA.put(objectKey, file.stream(), {
-		httpMetadata: { contentType: file.type },
-	})
 	await env.CACHE.put(
 		rateKey,
 		String((Number.isFinite(attempts) ? attempts : 0) + 1),
@@ -980,14 +1022,82 @@ async function uploadMedia(request: Request, env: Env): Promise<Response> {
 		return apiError('bad_request', 'Yüklenecek dosya bulunamadı.', 400)
 	}
 
-	const key = `uploads/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`
-	await env.MEDIA.put(key, file.stream(), {
-		httpMetadata: {
-			contentType: file.type,
-		},
-	})
+	const key = await storeImage(
+		env,
+		`uploads/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`,
+		file,
+	)
 
 	return json({ key }, { status: 201 })
+}
+
+async function handleAutofill(request: Request, env: Env): Promise<Response> {
+	const body = (await readJsonBody(request)) as { websiteUrl?: unknown; instagramUrl?: unknown }
+	try {
+		const { imageUrls, logoUrl, ...fields } = await autofillEnterprise(
+			env as Env & { APIFY_API_TOKEN?: string; GEMINI_API_KEY?: string },
+			await getDirectoryMeta(env.DB),
+			{
+				websiteUrl: typeof body.websiteUrl === 'string' ? body.websiteUrl : undefined,
+				instagramUrl: typeof body.instagramUrl === 'string' ? body.instagramUrl : undefined,
+			},
+		)
+		const [logoKey, ...imageKeys] = await Promise.all(
+			[logoUrl, ...imageUrls].map((imageUrl) => (imageUrl ? importRemoteImage(env, imageUrl) : null)),
+		)
+		return json({
+			...fields,
+			logoKey: logoKey ?? undefined,
+			imageKeys: imageKeys.filter((key): key is string => key !== null),
+		})
+	} catch (error) {
+		if (error instanceof AutofillError) return apiError('bad_request', error.message, 422)
+		throw error
+	}
+}
+
+async function importRemoteImage(env: Env, imageUrl: string): Promise<string | null> {
+	try {
+		const response = await fetch(imageUrl, { headers: { 'user-agent': 'Mozilla/5.0 SGR-Autofill' } })
+		const type = response.headers.get('content-type')?.split(';')[0] ?? ''
+		if (!response.ok || !type.startsWith('image/')) return null
+		const blob = await response.blob()
+		if (blob.size === 0 || blob.size > 15 * 1024 * 1024) return null
+		const extension = type.split('/')[1]?.replace('jpeg', 'jpg') ?? 'img'
+		return await storeImage(
+			env,
+			`uploads/${crypto.randomUUID()}-autofill.${extension}`,
+			new File([blob], `autofill.${extension}`, { type }),
+		)
+	} catch {
+		return null
+	}
+}
+
+// Raster uploads are re-encoded to AVIF (long edge ≤ 1600px) via the Images
+// binding. GIF/SVG/AVIF and anything the binding rejects are stored as-is.
+const AVIF_SOURCE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+async function storeImage(env: Env, key: string, file: File): Promise<string> {
+	if (AVIF_SOURCE_TYPES.has(file.type)) {
+		try {
+			const result = await env.IMAGES.input(file.stream())
+				.transform({ width: 1600, height: 1600, fit: 'scale-down' })
+				.output({ format: 'image/avif', quality: 60 })
+			const avifKey = key.replace(/\.[a-zA-Z0-9]+$/, '') + '.avif'
+			await env.MEDIA.put(avifKey, result.response().body, {
+				httpMetadata: { contentType: 'image/avif' },
+			})
+			return avifKey
+		} catch (error) {
+			console.warn(JSON.stringify({ level: 'warn', message: 'AVIF conversion failed', key, error: String(error) }))
+		}
+	}
+
+	await env.MEDIA.put(key, file.stream(), {
+		httpMetadata: { contentType: file.type },
+	})
+	return key
 }
 
 async function getMedia(env: Env, key: string): Promise<Response> {
@@ -1000,6 +1110,9 @@ async function getMedia(env: Env, key: string): Promise<Response> {
 	const headers = new Headers()
 	object.writeHttpMetadata(headers)
 	headers.set('etag', object.httpEtag)
+	// Keys embed a random UUID and are never overwritten, so browsers and the
+	// edge can keep them for a year.
+	headers.set('cache-control', 'public, max-age=31536000, immutable')
 
 	return new Response(object.body, { headers })
 }
