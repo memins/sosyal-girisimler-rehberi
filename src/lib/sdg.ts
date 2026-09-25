@@ -17,7 +17,6 @@ import {
 	TrendingUpIcon,
 	UsersIcon,
 	VenusAndMarsIcon,
-	ZapIcon,
 } from 'lucide-react'
 
 export interface SdgMeta {

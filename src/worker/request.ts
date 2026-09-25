@@ -218,18 +218,6 @@ function requireText(
 	}
 }
 
-function requireMinLength(
-	errors: Record<string, string>,
-	key: string,
-	value: string,
-	minLength: number,
-	message: string,
-): void {
-	if (value.length < minLength) {
-		errors[key] = message
-	}
-}
-
 function requireSlug(errors: Record<string, string>, value: string): void {
 	if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
 		errors.slug = 'Slug sadece küçük harf, sayı ve tire içermeli.'
