@@ -1,4 +1,5 @@
 import { MenuIcon } from 'lucide-react'
+import { useRef } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,6 +23,9 @@ const navigation = [
 export function Header() {
 	const location = useLocation()
 	const showAdminLink = location.pathname.startsWith('/admin')
+	// Menüden bir bağlantı seçildiyse çekmece kapanınca odak tetikleyiciye değil
+	// yeni sayfanın içeriğine gitsin.
+	const navigatedFromSheet = useRef(false)
 
 	return (
 		<header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
@@ -77,7 +81,17 @@ export function Header() {
 							<MenuIcon />
 						</Button>
 					</SheetTrigger>
-					<SheetContent>
+					<SheetContent
+						onClick={(event) => {
+							if ((event.target as HTMLElement).closest('a')) navigatedFromSheet.current = true
+						}}
+						onCloseAutoFocus={(event) => {
+							if (!navigatedFromSheet.current) return
+							navigatedFromSheet.current = false
+							event.preventDefault()
+							document.getElementById('main-content')?.focus({ preventScroll: true })
+						}}
+					>
 						<SheetHeader>
 							<SheetTitle>Menü</SheetTitle>
 						</SheetHeader>

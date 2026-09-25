@@ -1,5 +1,4 @@
 import { XIcon } from 'lucide-react'
-import { useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { DirectoryMeta } from '@/shared/types'
@@ -22,33 +21,22 @@ interface ActiveFilterBarProps {
 }
 
 export function ActiveFilterBar({ meta, params, onRemove, onClear }: ActiveFilterBarProps) {
-	const groupRef = useRef<HTMLDivElement>(null)
 	const chips = collectChips(meta, params)
 	const query = params.get('query')?.trim() ?? ''
 	const hasQuery = query.length > 0
 
 	if (chips.length === 0 && !hasQuery) return null
 
-	// Kaldırılan çipin butonu DOM'dan çıkar; odak kaybolmasın diye gruba,
-	// grup da kalmadıysa sonuç bölümüne taşınır.
+	// Kaldırılan çipin butonu DOM'dan çıkar; odak <body>'ye düşmesin diye
+	// kaldırmadan önce kalıcı olan sonuç bölümüne taşınır. Güncel sonuç sayısı
+	// oradaki canlı bölgeden duyurulur.
 	function handleRemove(key: string, value: string) {
+		document.getElementById('search-results')?.focus({ preventScroll: true })
 		onRemove(key, value)
-		requestAnimationFrame(() => {
-			const target = groupRef.current?.isConnected
-				? groupRef.current
-				: document.getElementById('search-results')
-			target?.focus({ preventScroll: true })
-		})
 	}
 
 	return (
-		<div
-			ref={groupRef}
-			role="group"
-			aria-label="Etkin filtreler"
-			tabIndex={-1}
-			className="flex flex-wrap items-center gap-2"
-		>
+		<div role="group" aria-label="Etkin filtreler" className="flex flex-wrap items-center gap-2">
 			{hasQuery && (
 				<Badge variant="secondary" className="gap-1.5 overflow-visible py-1.5 pl-3 pr-1">
 					<span className="text-xs font-medium text-muted-foreground">Arama</span>
