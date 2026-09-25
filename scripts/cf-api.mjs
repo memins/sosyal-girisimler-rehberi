@@ -54,11 +54,14 @@ export async function r2Put(key, data, contentType) {
 }
 
 export async function r2Get(key) {
-	const response = await fetch(`${API}/r2/buckets/${BUCKET}/objects/${encodeURIComponent(key)}`, {
-		headers: { authorization: `Bearer ${token()}` },
-	})
-	if (!response.ok) throw new Error(`R2 get ${key} failed: ${response.status}`)
-	return Buffer.from(await response.arrayBuffer())
+	for (let attempt = 1; ; attempt += 1) {
+		const response = await fetch(`${API}/r2/buckets/${BUCKET}/objects/${encodeURIComponent(key)}`, {
+			headers: { authorization: `Bearer ${token()}` },
+		})
+		if (response.ok) return Buffer.from(await response.arrayBuffer())
+		if (response.status !== 429 || attempt >= 5) throw new Error(`R2 get ${key} failed: ${response.status}`)
+		await new Promise((resolve) => setTimeout(resolve, 2000 * attempt))
+	}
 }
 
 export async function mapLimit(items, limit, worker) {
