@@ -1,5 +1,5 @@
 import { SearchIcon, SearchXIcon, SlidersHorizontalIcon } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
 import { FilterSidebar } from '@/features/directory/FilterSidebar'
@@ -40,13 +40,13 @@ export function SearchPage() {
 	const [searchParams, setSearchParams] = useSearchParams()
 	const [meta, setMeta] = useState<DirectoryMeta | null>(null)
 	const [results, setResults] = useState<ListEnterprisesPayload | null>(null)
+	const [isFetching, setIsFetching] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [queryInput, setQueryInput] = useState(() => searchParams.get('query') ?? '')
 	const queryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const resultsRef = useRef<HTMLElement>(null)
 	const currentParams = useMemo(() => new URLSearchParams(searchParams), [searchParams])
 	const sort = (searchParams.get('sort') as EnterpriseSort) || 'featured'
-	const page = Number(searchParams.get('page')) || 1
 	useDocumentTitle('Girişimler')
 
 	useEffect(() => {
@@ -55,11 +55,27 @@ export function SearchPage() {
 			.catch((err: Error) => setError(err.message))
 	}, [])
 
+	// Yeni sonuçlar gelene kadar eskileri soluk göster: iskelete geri dönmek
+	// sayfa yüksekliğini değiştirip düzen kaymasına (CLS) yol açıyordu.
 	useEffect(() => {
-		setResults(null)
+		let ignore = false
+		setIsFetching(true)
 		listEnterprises(currentParams)
-			.then(setResults)
-			.catch((err: Error) => setError(err.message))
+			.then((payload) => {
+				if (ignore) return
+				startTransition(() => {
+					setResults(payload)
+					setIsFetching(false)
+				})
+			})
+			.catch((err: Error) => {
+				if (ignore) return
+				setError(err.message)
+				setIsFetching(false)
+			})
+		return () => {
+			ignore = true
+		}
 	}, [currentParams])
 
 	useEffect(() => {
@@ -156,7 +172,13 @@ export function SearchPage() {
 								className="pl-9 md:w-80"
 							/>
 						</div>
-						{meta && (
+						{/* Meta gelmeden de yer tutulur; buton sonradan belirip arama kutusunu kaydırmaz. */}
+						{!meta ? (
+							<Button variant="outline" className="md:hidden" disabled>
+								<SlidersHorizontalIcon />
+								Filtre
+							</Button>
+						) : (
 							<Sheet>
 								<SheetTrigger asChild>
 									<Button variant="outline" className="md:hidden">
@@ -205,7 +227,7 @@ export function SearchPage() {
 					ref={resultsRef}
 					tabIndex={-1}
 					aria-label="Arama sonuçları"
-					aria-busy={results === null}
+					aria-busy={isFetching}
 					className="flex scroll-mt-24 flex-col gap-6"
 				>
 					{meta && <ActiveFilterBar meta={meta} params={searchParams} onRemove={handleRemoveChip} onClear={handleClearAll} />}
@@ -216,7 +238,7 @@ export function SearchPage() {
 							{results
 								? total === 0
 									? 'Eşleşen girişim bulunamadı'
-									: `${total} girişim · sayfa ${page} / ${Math.max(1, Math.ceil(total / (results.pageSize || 24)))}`
+									: `${total} girişim · sayfa ${results.page} / ${Math.max(1, Math.ceil(total / (results.pageSize || 24)))}`
 								: 'Girişimler yükleniyor…'}
 						</p>
 						<div className="flex items-center gap-2">
@@ -251,7 +273,11 @@ export function SearchPage() {
 						/>
 					) : (
 						<>
-							<div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+							<div
+								className={`grid gap-5 transition-opacity sm:grid-cols-2 xl:grid-cols-3 ${
+									isFetching ? 'opacity-60' : ''
+								}`}
+							>
 								{results.items.map((enterprise, index) => (
 									<EnterpriseCard
 										key={enterprise.id}

@@ -8,12 +8,11 @@ const GA_ID = 'G-71TXFKRMQX'
 type Consent = 'accepted' | 'rejected'
 
 export function CookieConsent() {
-	const [consent, setConsent] = useState<Consent | null | undefined>(undefined)
+	// localStorage eşzamanlı okunur; banner ek bir render beklemeden doğru durumda başlar.
+	const [consent, setConsent] = useState<Consent | null>(readConsent)
 
 	useEffect(() => {
-		const stored = readConsent()
-		setConsent(stored)
-		if (stored === 'accepted') loadAnalytics()
+		if (readConsent() === 'accepted') whenIdle(loadAnalytics)
 	}, [])
 
 	function handleChoice(next: Consent) {
@@ -63,6 +62,18 @@ function readConsent(): Consent | null {
 		return value === 'accepted' || value === 'rejected' ? value : null
 	} catch {
 		return null
+	}
+}
+
+/**
+ * Analitik, ilk boyama ve etkileşimle yarışmasın diye tarayıcı boşa çıkınca
+ * yüklenir (LCP/INP). requestIdleCallback olmayan tarayıcılarda kısa bir gecikme.
+ */
+function whenIdle(callback: () => void) {
+	if ('requestIdleCallback' in window) {
+		window.requestIdleCallback(callback, { timeout: 4000 })
+	} else {
+		setTimeout(callback, 2000)
 	}
 }
 

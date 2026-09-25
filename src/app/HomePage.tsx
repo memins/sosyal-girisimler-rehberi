@@ -128,17 +128,16 @@ function HeroSection({ query, onQueryChange, onSubmit, data }: HeroSectionProps)
 							<ArrowRightIcon />
 						</Button>
 					</form>
-					{data?.stats ? (
-						<p className="text-sm text-muted-foreground lg:hidden">
-							<span className="font-semibold text-foreground">
-								{data.stats.enterprises} girişim
-							</span>
-							{' · '}
-							<span className="font-semibold text-foreground">
-								{data.stats.countries} ülke
-							</span>
-						</p>
-					) : null}
+					{/* Veri gelmeden de satır yüksekliği korunur; altındaki içerik kaymaz (CLS). */}
+					<p className="min-h-5 text-sm text-muted-foreground lg:hidden">
+						<span className="font-semibold text-foreground">
+							{data?.stats.enterprises ?? '—'} girişim
+						</span>
+						{' · '}
+						<span className="font-semibold text-foreground">
+							{data?.stats.countries ?? '—'} ülke
+						</span>
+					</p>
 					<div
 						role="group"
 						aria-labelledby="popular-searches"
