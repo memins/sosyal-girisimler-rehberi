@@ -42,6 +42,8 @@ type EnterpriseRow = {
 	cover_key: string | null
 	status: EnterpriseStatus
 	is_featured: number
+	import_source: string | null
+	needs_review: number
 	created_at: string
 	updated_at: string
 }
@@ -233,6 +235,8 @@ export async function listEnterprises(
 	if (!includeDrafts) {
 		conditions.push('status = ?')
 		params.push('published')
+	} else if (filters.needsReview) {
+		conditions.push('needs_review = 1')
 	}
 
 	if (filters.query.length > 0) {
@@ -567,6 +571,7 @@ export async function upsertEnterprise(
 				cover_key = excluded.cover_key,
 				status = excluded.status,
 				is_featured = excluded.is_featured,
+				needs_review = 0,
 				updated_at = excluded.updated_at`,
 		)
 		.bind(
@@ -811,6 +816,9 @@ async function mapEnterpriseSummaries(
 			logoKey: logoFallback,
 			coverKey: coverFallback,
 			isFeatured: enterprise.isFeatured,
+			status: enterprise.status,
+			importSource: enterprise.importSource,
+			needsReview: enterprise.needsReview,
 			categories: enterprise.categories,
 			audiences: enterprise.audiences,
 			businessModels: enterprise.businessModels,
@@ -837,6 +845,8 @@ function mapEnterpriseRow(row: EnterpriseRow, relations: RelationRows): Enterpri
 		coverKey: row.cover_key,
 		status: row.status,
 		isFeatured: row.is_featured === 1,
+		importSource: row.import_source ?? null,
+		needsReview: row.needs_review === 1,
 		categories: relations.categories.get(row.id) ?? [],
 		audiences: relations.audiences.get(row.id) ?? [],
 		businessModels: relations.businessModels.get(row.id) ?? [],

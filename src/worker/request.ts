@@ -10,6 +10,7 @@ export type EnterpriseFilters = {
 	page: number
 	pageSize: number
 	sort: EnterpriseSort
+	needsReview: boolean
 }
 
 const ALLOWED_SORTS: ReadonlyArray<EnterpriseSort> = ['featured', 'newest', 'name']
@@ -72,6 +73,7 @@ export function parseEnterpriseFilters(url: URL): EnterpriseFilters {
 		page: parsePositiveInt(url.searchParams.get('page'), 1),
 		pageSize: clampPageSize(parsePositiveInt(url.searchParams.get('pageSize'), DEFAULT_PAGE_SIZE)),
 		sort: parseSort(url.searchParams.get('sort')),
+		needsReview: url.searchParams.get('review') === 'pending',
 	}
 }
 

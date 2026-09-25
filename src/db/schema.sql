@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS enterprises (
 	logo_key TEXT,
 	cover_key TEXT,
 	view_count INTEGER NOT NULL DEFAULT 0,
+	import_source TEXT,
+	needs_review INTEGER NOT NULL DEFAULT 0,
 	status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
 	is_featured INTEGER NOT NULL DEFAULT 0,
 	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -196,6 +198,7 @@ CREATE TABLE IF NOT EXISTS admin_audit_log (
 CREATE INDEX IF NOT EXISTS idx_enterprises_status ON enterprises(status);
 CREATE INDEX IF NOT EXISTS idx_enterprises_featured ON enterprises(is_featured, status);
 CREATE INDEX IF NOT EXISTS idx_enterprises_slug ON enterprises(slug);
+CREATE INDEX IF NOT EXISTS idx_enterprises_needs_review ON enterprises(needs_review);
 CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
 CREATE INDEX IF NOT EXISTS idx_editorial_lists_status ON editorial_lists(status);
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);

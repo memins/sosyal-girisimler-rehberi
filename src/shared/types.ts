@@ -66,6 +66,8 @@ export type Enterprise = {
 	coverKey: string | null
 	status: EnterpriseStatus
 	isFeatured: boolean
+	importSource: string | null
+	needsReview: boolean
 	categories: Array<TaxonomyItem>
 	audiences: Array<TaxonomyItem>
 	businessModels: Array<TaxonomyItem>
@@ -86,6 +88,9 @@ export type EnterpriseSummary = Pick<
 	| 'logoKey'
 	| 'coverKey'
 	| 'isFeatured'
+	| 'status'
+	| 'importSource'
+	| 'needsReview'
 	| 'categories'
 	| 'audiences'
 	| 'businessModels'
@@ -259,6 +264,24 @@ export type UpsertEnterpriseInput = {
 	countryCodes: Array<string>
 	sdgIds: Array<number>
 	gallery?: Array<DraftGalleryItem>
+}
+
+export type EnterpriseAutofillResult = {
+	name: string
+	shortDescription: string
+	problem: string
+	solution: string
+	impact: string
+	longContent: string
+	websiteUrl?: string
+	instagramUrl?: string
+	categoryIds: Array<string>
+	audienceIds: Array<string>
+	businessModelIds: Array<string>
+	countryCodes: Array<string>
+	sdgIds: Array<number>
+	logoKey?: string
+	imageKeys: Array<string>
 }
 
 export type UpsertEditorialListInput = {

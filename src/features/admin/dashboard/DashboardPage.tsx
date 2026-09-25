@@ -1,4 +1,11 @@
-import { ArrowRightIcon, Building2Icon, InboxIcon, StarIcon, TagsIcon } from 'lucide-react'
+import {
+	ArrowRightIcon,
+	Building2Icon,
+	InboxIcon,
+	StarIcon,
+	TagsIcon,
+	WandSparklesIcon,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +18,7 @@ import type { Submission } from '@/shared/types'
 
 interface DashboardData {
 	enterprises: number
+	pendingReview: number
 	pendingSubmissions: number
 	editorialLists: number
 	newsletterSubscribers: number
@@ -32,6 +40,7 @@ export default function DashboardPage() {
 				])
 				setData({
 					enterprises: summary.enterprises,
+					pendingReview: summary.pendingReview ?? 0,
 					pendingSubmissions: summary.pendingSubmissions,
 					editorialLists: summary.editorialLists,
 					newsletterSubscribers: summary.newsletterSubscribers ?? 0,
@@ -66,6 +75,14 @@ export default function DashboardPage() {
 					value={data?.pendingSubmissions ?? '—'}
 					accent={data && data.pendingSubmissions > 0 ? 'warning' : undefined}
 				/>
+				<Link to="/admin/auto-imported" className="rounded-xl focus-visible:outline-2 focus-visible:outline-ring">
+					<MetricCard
+						icon={WandSparklesIcon}
+						label="Otomatik çekildi (kontrol bekliyor)"
+						value={data?.pendingReview ?? '—'}
+						accent={data && data.pendingReview > 0 ? 'warning' : undefined}
+					/>
+				</Link>
 				<MetricCard
 					icon={StarIcon}
 					label="Öne çıkan"

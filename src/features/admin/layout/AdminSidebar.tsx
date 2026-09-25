@@ -8,6 +8,7 @@ import {
 	MessagesSquareIcon,
 	TagsIcon,
 	UsersIcon,
+	WandSparklesIcon,
 	type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -45,6 +46,7 @@ interface NavItem {
 const NAV_ITEMS: ReadonlyArray<NavItem> = [
 	{ to: '/admin', label: 'Panel', icon: LayoutDashboardIcon, end: true },
 	{ to: '/admin/enterprises', label: 'Girişimler', icon: Building2Icon },
+	{ to: '/admin/auto-imported', label: 'Otomatik Çekildi', icon: WandSparklesIcon },
 	{ to: '/admin/submissions', label: 'Yeni öneriler', icon: InboxIcon },
 	{
 		to: '/admin/edit-suggestions',

@@ -23,6 +23,7 @@ describe('parseEnterpriseFilters', () => {
 			page: 1,
 			pageSize: 24,
 			sort: 'featured',
+			needsReview: false,
 		})
 	})
 
@@ -41,6 +42,7 @@ describe('parseEnterpriseFilters', () => {
 			page: 1,
 			pageSize: 24,
 			sort: 'featured',
+			needsReview: false,
 		})
 	})
 
@@ -61,6 +63,7 @@ describe('parseEnterpriseFilters', () => {
 			page: 1,
 			pageSize: 60,
 			sort: 'featured',
+			needsReview: false,
 		})
 	})
 })

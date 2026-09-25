@@ -14,6 +14,9 @@ const SubmissionPage = lazy(() =>
 	import('./SubmissionPage').then((m) => ({ default: m.SubmissionPage })),
 )
 const AboutPage = lazy(() => import('./AboutPage').then((m) => ({ default: m.AboutPage })))
+const FocusAreaPage = lazy(() =>
+	import('./FocusAreaPage').then((m) => ({ default: m.FocusAreaPage })),
+)
 const LegalPage = lazy(() => import('./LegalPage'))
 const NotFoundPage = lazy(() => import('./NotFoundPage'))
 
@@ -76,6 +79,7 @@ export function App() {
 					<Route path="/arama" element={<SearchPage />} />
 					<Route path="/girisimler/:slug" element={<EnterpriseDetailPage />} />
 					<Route path="/girisim-ekle" element={<SubmissionPage />} />
+					<Route path="/istihdam-ve-egitim" element={<FocusAreaPage />} />
 					<Route path="/hakkimizda" element={<AboutPage />} />
 					<Route path="/gizlilik" element={<LegalPage kind="privacy" />} />
 					<Route path="/kosullar" element={<LegalPage kind="terms" />} />
@@ -87,6 +91,7 @@ export function App() {
 				<Route path="/admin" element={<AdminShell />}>
 					<Route index element={<DashboardPage />} />
 					<Route path="enterprises" element={<EnterprisesListPage />} />
+					<Route path="auto-imported" element={<EnterprisesListPage variant="review" />} />
 					<Route path="enterprises/new" element={<EnterpriseFormPage mode="create" />} />
 					<Route path="enterprises/:id/edit" element={<EnterpriseFormPage mode="edit" />} />
 					<Route path="submissions" element={<SubmissionsListPage />} />

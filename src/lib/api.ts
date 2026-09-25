@@ -8,6 +8,7 @@ import type {
 	DirectoryMeta,
 	EditorialList,
 	Enterprise,
+	EnterpriseAutofillResult,
 	EnterpriseDetail,
 	HomePayload,
 	ListEnterprisesPayload,
@@ -31,6 +32,7 @@ import type {
 
 type AdminSummary = {
 	enterprises: number
+	pendingReview?: number
 	pendingSubmissions: number
 	editorialLists: number
 	newsletterSubscribers?: number
@@ -141,6 +143,17 @@ export async function updateAdminUser(id: string, input: UpdateAdminUserInput): 
 
 export async function getAdminSummary(): Promise<AdminSummary> {
 	return apiGet('/api/admin/summary')
+}
+
+export async function autofillEnterprise(input: {
+	websiteUrl?: string
+	instagramUrl?: string
+}): Promise<EnterpriseAutofillResult> {
+	return apiPost('/api/admin/enterprises/autofill', input)
+}
+
+export async function markEnterpriseReviewed(id: string): Promise<void> {
+	await apiPost(`/api/admin/enterprises/${encodeURIComponent(id)}/review`, {})
 }
 
 export async function listAdminEnterprises(
