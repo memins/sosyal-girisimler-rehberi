@@ -32,6 +32,7 @@ describe('buildRobotsTxt', () => {
 			[
 				'User-agent: *',
 				'Allow: /',
+				'Allow: /api/media/',
 				'Disallow: /admin',
 				'Disallow: /api/',
 				'',
