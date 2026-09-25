@@ -29,6 +29,7 @@ import type {
 	UpdateTaxonomyInput,
 	UpsertTaxonomyInput,
 } from '@/shared/types'
+import { getRecaptchaToken } from './recaptcha'
 
 type AdminSummary = {
 	enterprises: number
@@ -65,11 +66,11 @@ export async function getEnterprise(slug: string): Promise<EnterpriseDetail> {
 export async function subscribeNewsletter(
 	email: string,
 ): Promise<{ ok: true; alreadySubscribed: boolean }> {
-	return apiPost('/api/newsletter', { email })
+	return apiPost('/api/newsletter', { email }, await recaptchaHeaders('newsletter'))
 }
 
 export async function createSubmission(input: SubmissionInput): Promise<Submission> {
-	return apiPost('/api/submissions', input)
+	return apiPost('/api/submissions', input, await recaptchaHeaders('submission'))
 }
 
 export async function uploadSubmissionImage(file: File): Promise<{ key: string }> {
@@ -77,6 +78,7 @@ export async function uploadSubmissionImage(file: File): Promise<{ key: string }
 	body.set('file', file)
 	const response = await fetch('/api/submissions/media', {
 		method: 'POST',
+		headers: await recaptchaHeaders('submission_media'),
 		body,
 	})
 	return parseResponse(response)
@@ -89,6 +91,7 @@ export async function submitEditSuggestion(
 	return apiPost(
 		`/api/enterprises/${encodeURIComponent(enterpriseSlug)}/edit-suggestions`,
 		input,
+		await recaptchaHeaders('edit_suggestion'),
 	)
 }
 
@@ -295,14 +298,20 @@ async function apiGet<ResponseBody>(path: string): Promise<ResponseBody> {
 	return parseResponse(response)
 }
 
+async function recaptchaHeaders(action: string): Promise<Record<string, string>> {
+	return { 'x-recaptcha-token': await getRecaptchaToken(action) }
+}
+
 async function apiPost<ResponseBody, RequestBody>(
 	path: string,
 	body: RequestBody,
+	extraHeaders: Record<string, string> = {},
 ): Promise<ResponseBody> {
 	const response = await fetch(path, {
 		method: 'POST',
 		headers: {
 			'content-type': 'application/json',
+			...extraHeaders,
 		},
 		credentials: 'include',
 		body: JSON.stringify(body),

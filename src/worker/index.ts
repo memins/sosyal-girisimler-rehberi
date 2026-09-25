@@ -289,6 +289,7 @@ async function handleApiRequest(
 		if (!(await allowPublicWrite(env, request, 'edit-suggestion', 10))) {
 			return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
 		}
+		if (!(await passesRecaptcha(request, env, 'edit_suggestion'))) return recaptchaRejected()
 		const slug = decodeURIComponent(editSuggestionMatch[1])
 		const body = (await readJsonBody(request)) as {
 			message?: unknown
@@ -310,10 +311,12 @@ async function handleApiRequest(
 	}
 
 	if (request.method === 'POST' && pathname === '/api/submissions/media') {
+		if (!(await passesRecaptcha(request, env, 'submission_media'))) return recaptchaRejected()
 		return uploadSubmissionImage(request, env)
 	}
 
 	if (request.method === 'POST' && pathname === '/api/newsletter') {
+		if (!(await passesRecaptcha(request, env, 'newsletter'))) return recaptchaRejected()
 		return subscribeToNewsletter(request, env)
 	}
 
@@ -321,6 +324,7 @@ async function handleApiRequest(
 		if (!(await allowPublicWrite(env, request, 'submission', 10))) {
 			return apiError('bad_request', 'Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin.', 429)
 		}
+		if (!(await passesRecaptcha(request, env, 'submission'))) return recaptchaRejected()
 		const body = (await readJsonBody(request)) as SubmissionInput
 		const validation = validateSubmissionInput(body)
 
@@ -918,6 +922,40 @@ async function allowPublicWrite(
 		expirationTtl: 60 * 60,
 	})
 	return true
+}
+
+// reCAPTCHA v3: public forms send a token in x-recaptcha-token. Skipped when
+// no secret is configured (local dev).
+const RECAPTCHA_MIN_SCORE = 0.5
+
+async function passesRecaptcha(request: Request, env: Env, action: string): Promise<boolean> {
+	const secret = (env as Env & { RECAPTCHA_SECRET_KEY?: string }).RECAPTCHA_SECRET_KEY
+	if (!secret) return true
+	const token = request.headers.get('x-recaptcha-token')
+	if (!token) return false
+	const body = new URLSearchParams({ secret, response: token })
+	const ip = request.headers.get('cf-connecting-ip')
+	if (ip) body.set('remoteip', ip)
+	try {
+		const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+			method: 'POST',
+			body,
+		})
+		const result = (await response.json()) as { success?: boolean; score?: number; action?: string }
+		return (
+			result.success === true &&
+			result.action === action &&
+			(result.score ?? 0) >= RECAPTCHA_MIN_SCORE
+		)
+	} catch (error) {
+		// Don't lock out real users if Google is unreachable; rate limits still apply.
+		console.warn(JSON.stringify({ level: 'warn', message: 'reCAPTCHA verify failed', error: String(error) }))
+		return true
+	}
+}
+
+function recaptchaRejected(): Response {
+	return apiError('bad_request', 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar deneyin.', 403)
 }
 
 async function visitorKey(request: Request): Promise<string> {

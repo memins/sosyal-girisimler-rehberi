@@ -16,7 +16,7 @@ const content: Record<
 		title: 'Gizlilik politikası',
 		description:
 			'Bu sayfa hazırlanıyor. Sosyal Girişimler Rehberi yalnızca gerekli verileri toplar ve üçüncü taraflarla paylaşmaz.',
-		body: 'Yayına alındığında veri toplama, çerez kullanımı ve haklarınız hakkında ayrıntılı bilgi burada yer alacaktır.',
+		body: 'Yayına alındığında veri toplama, çerez kullanımı ve haklarınız hakkında ayrıntılı bilgi burada yer alacaktır. Girişim önerme, düzenleme önerisi ve bülten formları spam koruması için Google reCAPTCHA kullanır; reCAPTCHA yalnızca bu formlardan biri gönderildiğinde yüklenir ve Google Gizlilik Politikası (policies.google.com/privacy) ile Hizmet Şartları (policies.google.com/terms) geçerlidir.',
 	},
 	terms: {
 		eyebrow: 'Yasal',
