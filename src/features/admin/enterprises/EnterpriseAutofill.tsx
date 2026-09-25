@@ -51,6 +51,7 @@ export function EnterpriseAutofill({ form, enterpriseId, onGalleryChanged }: Ent
 			const filled = applyResult(result)
 			const images = await applyImages(result)
 			toast.success(`${filled} alan dolduruldu${images > 0 ? `, ${images} görsel eklendi` : ''}. Kaydetmeden önce kontrol et.`)
+			for (const warning of result.warnings ?? []) toast.warning(warning)
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Otomatik doldurma başarısız.')
 		} finally {

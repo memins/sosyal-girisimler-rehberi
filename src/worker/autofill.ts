@@ -5,7 +5,7 @@ import type { DirectoryMeta, EnterpriseAutofillResult } from '@/shared/types'
 const APIFY_API = 'https://api.apify.com/v2/acts'
 const INSTAGRAM_ACTOR = 'apify~instagram-profile-scraper'
 const WEB_ACTOR = 'apify~rag-web-browser'
-const GEMINI_MODEL = 'gemini-2.5-flash'
+const GEMINI_MODEL = 'gemini-3.8-flash'
 const MAX_SOURCE_CHARS = 24_000
 const MAX_IMAGES = 6
 
@@ -38,7 +38,9 @@ export async function autofillEnterprise(
 	env: AutofillEnv,
 	meta: DirectoryMeta,
 	input: { websiteUrl?: string; instagramUrl?: string },
-): Promise<EnterpriseAutofillResult & { imageUrls: Array<string>; logoUrl?: string }> {
+): Promise<
+	EnterpriseAutofillResult & { imageUrls: Array<string>; logoUrl?: string; warnings: Array<string> }
+> {
 	if (!env.APIFY_API_TOKEN || !env.GEMINI_API_KEY) {
 		throw new AutofillError('Otomatik doldurma için APIFY_API_TOKEN ve GEMINI_API_KEY tanımlı olmalı.')
 	}
@@ -48,20 +50,42 @@ export async function autofillEnterprise(
 		throw new AutofillError('Web sitesi ya da Instagram bağlantısı girin.')
 	}
 
-	const sources = await Promise.all([
-		handle ? scrapeInstagram(env.APIFY_API_TOKEN, handle) : null,
-		websiteUrl ? scrapeWebsite(env.APIFY_API_TOKEN, websiteUrl) : null,
+	const warnings: Array<string> = []
+	const apifyToken = env.APIFY_API_TOKEN
+	const [instagramResult, websiteResult] = await Promise.allSettled([
+		handle ? scrapeInstagram(apifyToken, handle) : Promise.resolve(null),
+		websiteUrl
+			? scrapeWebsite(apifyToken, websiteUrl).catch(async (error: unknown) => {
+					// Apify down or over quota: read the page directly (no JS rendering).
+					const direct = await fetchWebsiteDirect(websiteUrl)
+					if (!direct) throw error
+					warnings.push(`Web sitesi Apify yerine doğrudan okundu (${errorText(error)}).`)
+					return direct
+				})
+			: Promise.resolve(null),
 	])
-	const usable = sources.filter((source): source is ScrapedSource => source !== null)
+	if (instagramResult.status === 'rejected') {
+		warnings.push(`Instagram okunamadı: ${errorText(instagramResult.reason)}`)
+	}
+	if (websiteResult.status === 'rejected') {
+		warnings.push(`Web sitesi okunamadı: ${errorText(websiteResult.reason)}`)
+	}
+	const instagramSource = instagramResult.status === 'fulfilled' ? instagramResult.value : null
+	const websiteSource = websiteResult.status === 'fulfilled' ? websiteResult.value : null
+	const usable = [instagramSource, websiteSource].filter(
+		(source): source is ScrapedSource => source !== null,
+	)
 	const text = usable.map((source) => source.text).join('\n\n---\n\n').slice(0, MAX_SOURCE_CHARS)
 	if (text.trim().length < 40) {
-		throw new AutofillError('Bağlantılardan yeterli içerik alınamadı.')
+		throw new AutofillError(
+			warnings.length > 0 ? warnings.join(' ') : 'Bağlantılardan yeterli içerik alınamadı.',
+		)
 	}
 
 	const fields = await extractWithGemini(env.GEMINI_API_KEY, meta, text)
-	const instagramSource = sources[0]
 	return {
 		...fields,
+		warnings,
 		websiteUrl: websiteUrl ?? instagramSource?.websiteUrl ?? fields.websiteUrl,
 		instagramUrl: handle ? `https://www.instagram.com/${handle}/` : fields.instagramUrl,
 		logoUrl: instagramSource?.logoUrl,
@@ -78,11 +102,12 @@ async function runActor<T>(token: string, actor: string, body: unknown): Promise
 			body: JSON.stringify(body),
 		},
 	)
-	if (response.status === 402) {
-		throw new AutofillError('Apify kullanım limiti doldu.')
-	}
 	if (!response.ok) {
-		throw new AutofillError(`Apify isteği başarısız (${response.status}).`)
+		const detail = await response.text()
+		if (response.status === 402 || /usage (hard )?limit/i.test(detail)) {
+			throw new AutofillError('Apify aylık kullanım limiti doldu')
+		}
+		throw new AutofillError(`Apify isteği başarısız (${response.status})`)
 	}
 	return (await response.json()) as Array<T>
 }
@@ -125,6 +150,46 @@ async function scrapeWebsite(token: string, url: string): Promise<ScrapedSource 
 		text: `Web sitesi (${url})${page.metadata?.title ? ` — ${page.metadata.title}` : ''}:\n${content}`,
 		images,
 	}
+}
+
+async function fetchWebsiteDirect(url: string): Promise<ScrapedSource | null> {
+	try {
+		const response = await fetch(url, {
+			headers: { 'user-agent': 'Mozilla/5.0 (compatible; SGR-Autofill)', accept: 'text/html' },
+			redirect: 'follow',
+		})
+		if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) return null
+		const html = (await response.text()).slice(0, 400_000)
+		const meta = (name: string) =>
+			html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]+content=["']([^"']+)`, 'i'))?.[1]
+		const title = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim()
+		const text = html
+			.replace(/<(script|style|noscript|svg|nav|footer)[\s\S]*?<\/\1>/gi, ' ')
+			.replace(/<[^>]+>/g, ' ')
+			.replace(/&nbsp;/g, ' ')
+			.replace(/&amp;/g, '&')
+			.replace(/&#39;|&rsquo;/g, "'")
+			.replace(/&quot;/g, '"')
+			.replace(/\s+/g, ' ')
+			.trim()
+		const ogImage = meta('og:image')
+		return {
+			text: [
+				`Web sitesi (${url})${title ? ` — ${title}` : ''}:`,
+				meta('description') && `Açıklama: ${meta('description')}`,
+				text,
+			]
+				.filter(Boolean)
+				.join('\n'),
+			images: ogImage ? [new URL(ogImage, url).toString()] : [],
+		}
+	} catch {
+		return null
+	}
+}
+
+function errorText(error: unknown): string {
+	return error instanceof Error ? error.message : String(error)
 }
 
 async function extractWithGemini(
@@ -180,7 +245,21 @@ ${sourceText}`
 							countryCodes: { type: 'ARRAY', items: { type: 'STRING' } },
 							sdgIds: { type: 'ARRAY', items: { type: 'INTEGER' } },
 						},
-						required: ['name', 'shortDescription'],
+						// Every field required (empty string / [] when unknown); otherwise
+						// the model tends to return only a couple of them.
+						required: [
+							'name',
+							'shortDescription',
+							'problem',
+							'solution',
+							'impact',
+							'longContent',
+							'categoryIds',
+							'audienceIds',
+							'businessModelIds',
+							'countryCodes',
+							'sdgIds',
+						],
 					},
 				},
 			}),

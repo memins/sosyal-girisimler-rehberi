@@ -282,6 +282,7 @@ export type EnterpriseAutofillResult = {
 	sdgIds: Array<number>
 	logoKey?: string
 	imageKeys: Array<string>
+	warnings?: Array<string>
 }
 
 export type UpsertEditorialListInput = {
