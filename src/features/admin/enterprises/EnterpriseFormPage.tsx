@@ -33,6 +33,7 @@ import {
 	enterpriseFormSchema,
 	type EnterpriseFormValues,
 } from '@/features/admin/schemas/enterprise'
+import { EnterpriseAutofill } from './EnterpriseAutofill'
 import { EnterpriseDraftGallery } from './EnterpriseDraftGallery'
 import { EnterpriseGallery } from './EnterpriseGallery'
 import { CheckIcon } from 'lucide-react'
@@ -77,6 +78,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 	const [enterprise, setEnterprise] = useState<Enterprise | null>(null)
 	const [slugTouched, setSlugTouched] = useState(false)
 	const [confirmDelete, setConfirmDelete] = useState(false)
+	const [galleryVersion, setGalleryVersion] = useState(0)
 
 	useEffect(() => {
 		getDirectoryMeta()
@@ -253,6 +255,11 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 
 			<Form {...form}>
 				<form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-10">
+					<EnterpriseAutofill
+						form={form}
+						enterpriseId={enterprise?.id}
+						onGalleryChanged={() => setGalleryVersion((value) => value + 1)}
+					/>
 					<Section title="Temel bilgiler">
 						<div className="grid gap-5 md:grid-cols-2">
 							<FormField
@@ -591,7 +598,7 @@ export function EnterpriseFormPage({ mode }: EnterpriseFormPageProps) {
 								</div>
 							</div>
 							{mode === 'edit' && enterprise ? (
-								<EnterpriseGallery enterpriseId={enterprise.id} />
+								<EnterpriseGallery key={galleryVersion} enterpriseId={enterprise.id} />
 							) : (
 								<FormField
 									control={form.control}
