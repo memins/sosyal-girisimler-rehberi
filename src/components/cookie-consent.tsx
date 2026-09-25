@@ -25,8 +25,7 @@ export function CookieConsent() {
 	if (consent !== null) return null
 
 	return (
-		<div
-			role="dialog"
+		<section
 			aria-labelledby="cookie-consent-title"
 			aria-describedby="cookie-consent-description"
 			className="fixed inset-x-0 bottom-16 z-50 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur-md md:bottom-0"
@@ -39,7 +38,7 @@ export function CookieConsent() {
 					<p id="cookie-consent-description" className="text-sm leading-relaxed text-muted-foreground">
 						Siteyi geliştirmek için yalnızca onay verirseniz Google Analytics çerezi kullanılır.
 						Ayrıntılar{' '}
-						<Link to="/gizlilik" className="text-primary underline-offset-4 hover:underline">
+						<Link to="/gizlilik" className="rounded-sm text-primary underline underline-offset-4">
 							gizlilik sayfasında
 						</Link>
 						.
@@ -54,7 +53,7 @@ export function CookieConsent() {
 					</Button>
 				</div>
 			</div>
-		</div>
+		</section>
 	)
 }
 

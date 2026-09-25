@@ -69,7 +69,6 @@ export function App() {
 	return (
 		<ErrorBoundary>
 			<ScrollToTop />
-			<CookieConsent />
 			<Routes>
 				<Route element={<SiteShell />}>
 					<Route path="/" element={<HomePage />} />
@@ -102,6 +101,8 @@ export function App() {
 					<Route path="media" element={<MediaLibraryPage />} />
 				</Route>
 			</Routes>
+			{/* Sekme sırasında "İçeriğe geç" bağlantısının önüne geçmemesi için en sonda. */}
+			<CookieConsent />
 		</ErrorBoundary>
 	)
 }

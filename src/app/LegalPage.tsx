@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/layout/page-header'
+import { useDocumentTitle } from '@/lib/a11y'
 
 type LegalKind = 'privacy' | 'terms' | 'contact'
 
@@ -35,6 +36,7 @@ const content: Record<
 
 export default function LegalPage({ kind }: LegalPageProps) {
 	const { eyebrow, title, description, body } = content[kind]
+	useDocumentTitle(title)
 	return (
 		<div className="mx-auto max-w-3xl space-y-8">
 			<PageHeader eyebrow={eyebrow} title={title} description={description} />

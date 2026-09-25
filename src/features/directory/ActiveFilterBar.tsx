@@ -1,4 +1,5 @@
 import { XIcon } from 'lucide-react'
+import { useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { DirectoryMeta } from '@/shared/types'
@@ -21,22 +22,41 @@ interface ActiveFilterBarProps {
 }
 
 export function ActiveFilterBar({ meta, params, onRemove, onClear }: ActiveFilterBarProps) {
+	const groupRef = useRef<HTMLDivElement>(null)
 	const chips = collectChips(meta, params)
 	const query = params.get('query')?.trim() ?? ''
 	const hasQuery = query.length > 0
 
 	if (chips.length === 0 && !hasQuery) return null
 
+	// Kaldırılan çipin butonu DOM'dan çıkar; odak kaybolmasın diye gruba,
+	// grup da kalmadıysa sonuç bölümüne taşınır.
+	function handleRemove(key: string, value: string) {
+		onRemove(key, value)
+		requestAnimationFrame(() => {
+			const target = groupRef.current?.isConnected
+				? groupRef.current
+				: document.getElementById('search-results')
+			target?.focus({ preventScroll: true })
+		})
+	}
+
 	return (
-		<div className="flex flex-wrap items-center gap-2">
+		<div
+			ref={groupRef}
+			role="group"
+			aria-label="Etkin filtreler"
+			tabIndex={-1}
+			className="flex flex-wrap items-center gap-2"
+		>
 			{hasQuery && (
-				<Badge variant="secondary" className="gap-1.5 py-1.5 pl-3 pr-1">
+				<Badge variant="secondary" className="gap-1.5 overflow-visible py-1.5 pl-3 pr-1">
 					<span className="text-xs font-medium text-muted-foreground">Arama</span>
 					<span className="text-sm">"{query}"</span>
 					<button
 						type="button"
-						onClick={() => onRemove('query', query)}
-						className="rounded-full p-0.5 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+						onClick={() => handleRemove('query', query)}
+						className="rounded-full p-1 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
 						aria-label="Aramayı temizle"
 					>
 						<XIcon className="size-3" />
@@ -44,22 +64,22 @@ export function ActiveFilterBar({ meta, params, onRemove, onClear }: ActiveFilte
 				</Badge>
 			)}
 			{chips.map((chip) => (
-				<Badge key={`${chip.key}:${chip.value}`} variant="secondary" className="gap-1.5 py-1.5 pl-3 pr-1">
+				<Badge key={`${chip.key}:${chip.value}`} variant="secondary" className="gap-1.5 overflow-visible py-1.5 pl-3 pr-1">
 					<span className="text-xs font-medium text-muted-foreground">
 						{FILTER_LABELS[chip.key]}
 					</span>
 					<span className="text-sm">{chip.label}</span>
 					<button
 						type="button"
-						onClick={() => onRemove(chip.key, chip.value)}
-						className="rounded-full p-0.5 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+						onClick={() => handleRemove(chip.key, chip.value)}
+						className="rounded-full p-1 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
 						aria-label={`${FILTER_LABELS[chip.key]} ${chip.label} kaldır`}
 					>
 						<XIcon className="size-3" />
 					</button>
 				</Badge>
 			))}
-			<Button variant="ghost" size="sm" onClick={onClear} className="ml-1">
+			<Button type="button" variant="ghost" size="sm" onClick={onClear} className="ml-1">
 				Tümünü temizle
 			</Button>
 		</div>

@@ -49,6 +49,7 @@ import { ErrorBlock, RouteFallback } from '@/components/StateBlock'
 import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
 import { GalleryLightbox } from '@/features/directory/GalleryLightbox'
 import { PublicEnterpriseActions } from '@/features/directory/PublicEnterpriseActions'
+import { useDocumentTitle } from '@/lib/a11y'
 
 const SAVED_KEY = 'sgr:saved'
 
@@ -61,6 +62,7 @@ export function EnterpriseDetailPage() {
 	const [supportCount, setSupportCount] = useState(0)
 	const [isSupporting, setIsSupporting] = useState(false)
 	const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+	useDocumentTitle(enterprise?.name ?? (error ? 'Girişim bulunamadı' : null))
 
 	useEffect(() => {
 		if (!slug) return
@@ -169,12 +171,20 @@ export function EnterpriseDetailPage() {
 							variant={supported ? 'default' : 'outline'}
 							onClick={() => void handleSupport()}
 							disabled={isSupporting}
+							aria-pressed={supported}
 						>
 							<ThumbsUpIcon className={supported ? 'fill-current' : ''} />
 							{supported ? 'Destekledin' : 'Destekle'}
-							<span className="tabular-nums">{supportCount}</span>
+							<span className="tabular-nums">
+								{supportCount}
+								<span className="sr-only"> destek</span>
+							</span>
 						</Button>
-						<Button variant={saved ? 'default' : 'outline'} onClick={toggleSaved}>
+						<Button
+							variant={saved ? 'default' : 'outline'}
+							onClick={toggleSaved}
+							aria-pressed={saved}
+						>
 							<HeartIcon className={saved ? 'fill-current' : ''} />
 							{saved ? 'Kaydedildi' : 'Kaydet'}
 						</Button>
@@ -198,6 +208,7 @@ export function EnterpriseDetailPage() {
 										rel="noreferrer"
 									>
 										WhatsApp
+										<span className="sr-only"> (yeni sekmede açılır)</span>
 									</a>
 								</DropdownMenuItem>
 								<DropdownMenuItem asChild>
@@ -207,6 +218,7 @@ export function EnterpriseDetailPage() {
 										rel="noreferrer"
 									>
 										X (Twitter)
+										<span className="sr-only"> (yeni sekmede açılır)</span>
 									</a>
 								</DropdownMenuItem>
 								<DropdownMenuItem asChild>
@@ -216,6 +228,7 @@ export function EnterpriseDetailPage() {
 										rel="noreferrer"
 									>
 										LinkedIn
+										<span className="sr-only"> (yeni sekmede açılır)</span>
 									</a>
 								</DropdownMenuItem>
 								<DropdownMenuItem asChild>
@@ -225,6 +238,7 @@ export function EnterpriseDetailPage() {
 										rel="noreferrer"
 									>
 										Telegram
+										<span className="sr-only"> (yeni sekmede açılır)</span>
 									</a>
 								</DropdownMenuItem>
 								<DropdownMenuItem asChild>
@@ -234,6 +248,7 @@ export function EnterpriseDetailPage() {
 										rel="noreferrer"
 									>
 										Facebook
+										<span className="sr-only"> (yeni sekmede açılır)</span>
 									</a>
 								</DropdownMenuItem>
 								<DropdownMenuItem
@@ -297,7 +312,10 @@ export function EnterpriseDetailPage() {
 					)}
 				</div>
 
-				<aside className="md:sticky md:top-24 md:max-h-[calc(100vh-7rem)] md:self-start md:overflow-y-auto">
+				<aside
+					aria-label="Girişim bilgileri"
+					className="md:sticky md:top-24 md:max-h-[calc(100vh-7rem)] md:self-start md:overflow-y-auto"
+				>
 					<EnterpriseFactsCard enterprise={enterprise} />
 				</aside>
 			</div>
@@ -317,20 +335,25 @@ export function EnterpriseDetailPage() {
 							<button
 								key={item.key}
 								type="button"
+								aria-haspopup="dialog"
+								aria-label={`Görseli büyüt: ${item.caption ?? `${enterprise.name}, görsel ${index + 1}`}`}
 								onClick={() => setLightboxIndex(index)}
 								className="group flex cursor-zoom-in flex-col overflow-hidden rounded-xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 							>
 								<div className="aspect-[4/3] overflow-hidden bg-secondary">
 									<img
 										src={`/api/media/${item.key}`}
-										alt={item.caption ?? enterprise.name}
+										alt=""
 										className="size-full object-cover transition duration-500 group-hover:scale-105"
 										loading="lazy"
 										decoding="async"
 									/>
 								</div>
 								{item.caption && (
-									<span className="block px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+									<span
+										className="block px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"
+										aria-hidden="true"
+									>
 										{item.caption}
 									</span>
 								)}
@@ -399,6 +422,7 @@ function DetailSection({ accent, icon: Icon, title, body }: DetailSectionProps) 
 
 function WebsiteEmbed({ url, name }: { url: string; name: string }) {
 	const [isOpen, setIsOpen] = useState(false)
+	const frameId = 'website-embed-frame'
 
 	return (
 		<section className="flex flex-col gap-3 rounded-2xl border border-border bg-card/40 p-4">
@@ -409,12 +433,19 @@ function WebsiteEmbed({ url, name }: { url: string; name: string }) {
 						{name} bağlantısını bu sayfadan ayrılmadan görüntüleyebilirsin.
 					</p>
 				</div>
-				<Button type="button" variant="outline" onClick={() => setIsOpen((open) => !open)}>
+				<Button
+					type="button"
+					variant="outline"
+					aria-expanded={isOpen}
+					aria-controls={frameId}
+					onClick={() => setIsOpen((open) => !open)}
+				>
 					{isOpen ? 'Kapat' : 'Sayfada aç'}
 				</Button>
 			</div>
 			{isOpen ? (
 				<iframe
+					id={frameId}
 					title={`${name} web sitesi`}
 					src={url}
 					className="h-[28rem] w-full rounded-xl border border-border bg-background"
@@ -435,13 +466,14 @@ function NeighborLink({
 }) {
 	const isPrevious = direction === 'previous'
 	if (!neighbor) {
-		return <span className="hidden flex-1 sm:block" />
+		return <span className="hidden flex-1 sm:block" aria-hidden="true" />
 	}
 
 	return (
 		<Link
 			to={`/girisimler/${neighbor.slug}`}
-			className={`flex min-w-0 flex-1 flex-col gap-1 rounded-xl border border-border bg-card/40 px-4 py-3 text-sm transition hover:border-primary/40 hover:bg-card ${
+			rel={isPrevious ? 'prev' : 'next'}
+			className={`flex min-w-0 flex-1 flex-col gap-1 rounded-xl border border-border bg-card/40 px-4 py-3 text-sm transition hover:border-primary/40 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
 				isPrevious ? 'sm:items-start' : 'sm:items-end'
 			}`}
 		>
@@ -465,6 +497,7 @@ function EnterpriseFactsCard({ enterprise }: { enterprise: EnterpriseDetail }) {
 						<a href={enterprise.instagramUrl} target="_blank" rel="noreferrer">
 							<AtSignIcon />
 							Instagram
+							<span className="sr-only"> (yeni sekmede açılır)</span>
 						</a>
 					</Button>
 				) : null}
@@ -473,6 +506,7 @@ function EnterpriseFactsCard({ enterprise }: { enterprise: EnterpriseDetail }) {
 						<a href={enterprise.websiteUrl} target="_blank" rel="noreferrer">
 							<ExternalLinkIcon />
 							{enterprise.instagramUrl ? 'Web sitesi' : 'Web sitesi üzerinden iletişime geç'}
+							<span className="sr-only"> (yeni sekmede açılır)</span>
 						</a>
 					</Button>
 				) : null}
@@ -554,9 +588,9 @@ function EnterpriseFactsCard({ enterprise }: { enterprise: EnterpriseDetail }) {
 function FactGroup({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+			<h2 className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
 				{label}
-			</span>
+			</h2>
 			{children}
 		</div>
 	)
@@ -660,7 +694,7 @@ function EditSuggestionButton({ enterpriseSlug, enterpriseName }: EditSuggestion
 						<form onSubmit={handleSubmit} className="flex flex-col gap-4">
 							<div className="flex flex-col gap-1.5">
 								<label className="text-sm font-medium" htmlFor="edit-suggestion-message">
-									Önerin <span className="text-destructive">*</span>
+									Önerin <span className="text-destructive" aria-hidden="true">*</span>
 								</label>
 								<Textarea
 									id="edit-suggestion-message"

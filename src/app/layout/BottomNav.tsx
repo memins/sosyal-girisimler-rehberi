@@ -23,7 +23,7 @@ export function BottomNav() {
 								to={tab.href}
 								end={tab.end}
 								className={({ isActive }) =>
-									`flex flex-col items-center gap-1 px-2 py-2.5 text-[11px] ${
+									`flex flex-col items-center gap-1 rounded-md px-2 py-2.5 text-[11px] focus-visible:outline-offset-[-2px] ${
 										isActive ? 'text-primary' : 'text-muted-foreground'
 									}`
 								}

@@ -93,7 +93,7 @@ export function AdminSidebar({ onNavigate }: AdminSidebarProps) {
 					Admin paneli
 				</span>
 			</Link>
-			<nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-4">
+			<nav aria-label="Yönetim menüsü" className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-4">
 				{NAV_ITEMS.filter((item) => !item.ownerOnly || user.role === 'owner').map((item) =>
 					item.children && item.children.length > 0 ? (
 						<NavItemWithChildren

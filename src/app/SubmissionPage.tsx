@@ -28,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { PageHeader } from '@/components/layout/page-header'
+import { useDocumentTitle } from '@/lib/a11y'
 
 const optionalUrl = z
 	.string()
@@ -81,6 +82,7 @@ export function SubmissionPage() {
 	const [imageKey, setImageKey] = useState<string | null>(null)
 	const [imageError, setImageError] = useState<string | null>(null)
 	const [isUploadingImage, setIsUploadingImage] = useState(false)
+	useDocumentTitle(isSuccess ? 'Önerin alındı' : 'Girişim ekle')
 
 	const form = useForm<SubmissionFormValues>({
 		resolver: zodResolver(submissionSchema),
@@ -131,7 +133,10 @@ export function SubmissionPage() {
 
 	if (isSuccess) {
 		return (
-			<div className="mx-auto flex max-w-2xl flex-col items-center gap-6 py-10 text-center">
+			<div
+				role="status"
+				className="mx-auto flex max-w-2xl flex-col items-center gap-6 py-10 text-center"
+			>
 				<span className="flex size-16 items-center justify-center rounded-full bg-success/15 text-success">
 					<CheckCircle2Icon className="size-8" />
 				</span>
@@ -249,10 +254,25 @@ export function SubmissionPage() {
 									</Button>
 								</div>
 							</div>
-						) : (
+						) : null}
+						{/* Gizli dosya girdisi etiketten önce gelir; odaklanınca etiket peer-focus-visible ile halka gösterir. */}
+						<input
+							id="submission-image"
+							type="file"
+							accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+							className="peer sr-only"
+							disabled={isUploadingImage}
+							aria-describedby={imageError ? 'submission-image-error' : undefined}
+							onChange={(event) => {
+								void handleImageSelect(event.target.files?.[0] ?? null)
+								event.target.value = ''
+							}}
+						/>
+						{imageKey ? null : (
 							<label
 								htmlFor="submission-image"
-								className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground transition hover:bg-secondary/40"
+								aria-busy={isUploadingImage}
+								className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground transition peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:bg-secondary/40"
 							>
 								{isUploadingImage ? (
 									<Loader2Icon className="size-5 animate-spin" />
@@ -263,18 +283,11 @@ export function SubmissionPage() {
 								<span className="text-xs">JPEG, PNG, WebP, GIF veya AVIF · en fazla 5 MB</span>
 							</label>
 						)}
-						<input
-							id="submission-image"
-							type="file"
-							accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
-							className="sr-only"
-							disabled={isUploadingImage}
-							onChange={(event) => {
-								void handleImageSelect(event.target.files?.[0] ?? null)
-								event.target.value = ''
-							}}
-						/>
-						{imageError && <p className="text-sm text-destructive">{imageError}</p>}
+						{imageError && (
+							<p id="submission-image-error" role="alert" className="text-sm text-destructive">
+								{imageError}
+							</p>
+						)}
 					</div>
 
 					<FormField

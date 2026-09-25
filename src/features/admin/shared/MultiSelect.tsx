@@ -51,7 +51,7 @@ export function MultiSelect({
 		}
 	}
 
-	function remove(optionValue: string, event: React.MouseEvent) {
+	function remove(optionValue: string, event: React.MouseEvent | React.KeyboardEvent) {
 		event.preventDefault()
 		event.stopPropagation()
 		onChange(value.filter((v) => v !== optionValue))
@@ -82,6 +82,9 @@ export function MultiSelect({
 										role="button"
 										tabIndex={0}
 										onClick={(event) => remove(option.value, event)}
+										onKeyDown={(event) => {
+											if (event.key === 'Enter' || event.key === ' ') remove(option.value, event)
+										}}
 										className="rounded-full p-0.5 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
 										aria-label={`${option.label} kaldır`}
 									>

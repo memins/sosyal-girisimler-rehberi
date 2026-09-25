@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/page-header'
+import { useDocumentTitle } from '@/lib/a11y'
 
 const PIPELINE = [
 	{
@@ -50,6 +51,7 @@ const FAQ = [
 ]
 
 export function AboutPage() {
+	useDocumentTitle('Hakkımızda')
 	return (
 		<div className="flex flex-col gap-20">
 			<PageHeader
