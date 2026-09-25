@@ -9,6 +9,18 @@ import { Badge } from '@/components/ui/badge'
 interface EnterpriseCardProps {
 	enterprise: EnterpriseSummary
 	showAddedAt?: boolean
+	/**
+	 * Kart ilk ekranda (LCP adayı) ise görsel tembel yüklenmez ve yüksek
+	 * öncelikle istenir. Yalnızca listenin ilk kartına verilmeli.
+	 */
+	priority?: boolean
+}
+
+/** Liste kartlarında görseller varsayılan olarak ekran dışı kabul edilir. */
+function imageLoading(priority: boolean) {
+	return priority
+		? ({ loading: 'eager', fetchPriority: 'high', decoding: 'async' } as const)
+		: ({ loading: 'lazy', fetchPriority: 'auto', decoding: 'async' } as const)
 }
 
 /**
@@ -35,7 +47,11 @@ function CardFrame({ enterprise, children }: { enterprise: EnterpriseSummary; ch
 	)
 }
 
-export function EnterpriseCard({ enterprise, showAddedAt = false }: EnterpriseCardProps) {
+export function EnterpriseCard({
+	enterprise,
+	showAddedAt = false,
+	priority = false,
+}: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
 	const primaryBusinessModel = enterprise.businessModels?.[0]
 
@@ -50,9 +66,10 @@ export function EnterpriseCard({ enterprise, showAddedAt = false }: EnterpriseCa
 						<img
 							src={`/api/media/${enterprise.coverKey}`}
 							alt=""
+							width={640}
+							height={360}
 							className="size-full object-cover transition duration-500 group-hover:scale-105"
-							loading="lazy"
-							decoding="async"
+							{...imageLoading(priority)}
 						/>
 					) : (
 						<div className="flex size-20 items-center justify-center rounded-full bg-background text-2xl font-semibold text-primary" aria-hidden="true">
@@ -112,7 +129,7 @@ export function EnterpriseCard({ enterprise, showAddedAt = false }: EnterpriseCa
 	)
 }
 
-export function EnterpriseCardLead({ enterprise }: EnterpriseCardProps) {
+export function EnterpriseCardLead({ enterprise, priority = false }: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
 	const primaryBusinessModel = enterprise.businessModels?.[0]
 
@@ -127,9 +144,10 @@ export function EnterpriseCardLead({ enterprise }: EnterpriseCardProps) {
 						<img
 							src={`/api/media/${enterprise.coverKey}`}
 							alt=""
+							width={640}
+							height={360}
 							className="size-full object-cover transition duration-500 group-hover:scale-105"
-							loading="lazy"
-							decoding="async"
+							{...imageLoading(priority)}
 						/>
 					) : (
 						<div className="flex size-full items-center justify-center text-5xl font-semibold text-primary" aria-hidden="true">
@@ -193,6 +211,8 @@ export function EnterpriseCardCompact({ enterprise }: EnterpriseCardProps) {
 						<img
 							src={`/api/media/${enterprise.logoKey ?? enterprise.coverKey}`}
 							alt=""
+							width={56}
+							height={56}
 							className="size-full object-cover"
 							loading="lazy"
 							decoding="async"

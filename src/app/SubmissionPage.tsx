@@ -240,6 +240,9 @@ export function SubmissionPage() {
 								<img
 									src={`/api/media/${imageKey}`}
 									alt="Yüklenen girişim görseli"
+									width={64}
+									height={64}
+									decoding="async"
 									className="size-16 rounded-lg object-cover"
 								/>
 								<div className="flex flex-col gap-1">

@@ -344,6 +344,8 @@ export function EnterpriseDetailPage() {
 									<img
 										src={`/api/media/${item.key}`}
 										alt=""
+										width={480}
+										height={360}
 										className="size-full object-cover transition duration-500 group-hover:scale-105"
 										loading="lazy"
 										decoding="async"

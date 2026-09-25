@@ -252,8 +252,12 @@ export function SearchPage() {
 					) : (
 						<>
 							<div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-								{results.items.map((enterprise) => (
-									<EnterpriseCard key={enterprise.id} enterprise={enterprise} />
+								{results.items.map((enterprise, index) => (
+									<EnterpriseCard
+										key={enterprise.id}
+										enterprise={enterprise}
+										priority={index === 0 && results.page <= 1}
+									/>
 								))}
 							</div>
 							<Pager
