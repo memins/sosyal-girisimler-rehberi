@@ -359,15 +359,22 @@ async function withEdgeCache(
 ): Promise<Response> {
 	const cache = caches.default
 	const cacheKey = new Request(request.url, { method: 'GET' })
+	// Short-lived API data: edge cache only (s-maxage), browsers revalidate.
+	// Set on every return because the zone's browser-TTL rewrites cached copies.
+	const cacheControl =
+		ttlSeconds >= 31536000
+			? 'public, max-age=31536000, immutable'
+			: `public, max-age=0, s-maxage=${ttlSeconds}, must-revalidate`
 	const cached = await cache.match(cacheKey)
-	if (cached) return cached
+	if (cached) {
+		const hit = new Response(cached.body, cached)
+		hit.headers.set('cache-control', cacheControl)
+		return hit
+	}
 
 	const response = await produce()
 	if (response.ok) {
-		response.headers.set(
-			'cache-control',
-			ttlSeconds >= 31536000 ? 'public, max-age=31536000, immutable' : `public, max-age=${ttlSeconds}`,
-		)
+		response.headers.set('cache-control', cacheControl)
 		ctx.waitUntil(cache.put(cacheKey, response.clone()))
 	}
 	return response
