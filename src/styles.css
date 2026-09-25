@@ -68,10 +68,10 @@
 	--accent-foreground: oklch(0.24 0.04 75);
 	--destructive: oklch(0.58 0.22 25);
 	--destructive-foreground: oklch(0.99 0.005 92);
-	--success: oklch(0.55 0.13 150);
+	--success: oklch(0.52 0.13 150);
 	--success-foreground: oklch(0.99 0.005 92);
-	--warning: oklch(0.72 0.15 75);
-	--warning-foreground: oklch(0.22 0.03 75);
+	--warning: oklch(0.51 0.12 70);
+	--warning-foreground: oklch(0.99 0.005 92);
 	--info: oklch(0.55 0.10 230);
 	--info-foreground: oklch(0.99 0.005 92);
 	--border: oklch(0.88 0.02 88);
@@ -104,16 +104,16 @@
 	--secondary-foreground: oklch(0.92 0.012 92);
 	--muted: oklch(0.26 0.016 145);
 	--muted-foreground: oklch(0.70 0.018 92);
-	--accent: oklch(0.55 0.10 88);
+	--accent: oklch(0.62 0.10 88);
 	--accent-foreground: oklch(0.18 0.02 75);
 	--destructive: oklch(0.62 0.20 25);
-	--destructive-foreground: oklch(0.99 0.005 92);
+	--destructive-foreground: oklch(0.18 0.02 25);
 	--success: oklch(0.70 0.13 150);
 	--success-foreground: oklch(0.18 0.02 145);
 	--warning: oklch(0.78 0.14 75);
 	--warning-foreground: oklch(0.18 0.02 75);
 	--info: oklch(0.68 0.11 230);
-	--info-foreground: oklch(0.99 0.005 92);
+	--info-foreground: oklch(0.18 0.02 230);
 	--border: oklch(0.32 0.018 145);
 	--input: oklch(0.30 0.018 145);
 	--ring: oklch(0.72 0.13 145);
@@ -151,7 +151,31 @@ select {
 }
 
 @layer base {
+	/*
+	 * Klavye odağı her zaman görünür olsun (WCAG 2.4.7). Kendi halkasını çizen
+	 * bileşenler `outline-none` ile bunu ezer; sınıfı olmayan bağlantı ve
+	 * butonlar bu varsayılanı kullanır.
+	 */
 	:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
+
+	/* Programatik odak alan kapsayıcılar (ör. <main tabIndex={-1}>) halka çizmez. */
+	[tabindex='-1']:focus {
 		outline: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		animation-delay: 0ms !important;
+		transition-duration: 0.01ms !important;
+		transition-delay: 0ms !important;
+		scroll-behavior: auto !important;
 	}
 }

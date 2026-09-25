@@ -8,12 +8,11 @@ const GA_ID = 'G-71TXFKRMQX'
 type Consent = 'accepted' | 'rejected'
 
 export function CookieConsent() {
-	const [consent, setConsent] = useState<Consent | null | undefined>(undefined)
+	// localStorage eşzamanlı okunur; banner ek bir render beklemeden doğru durumda başlar.
+	const [consent, setConsent] = useState<Consent | null>(readConsent)
 
 	useEffect(() => {
-		const stored = readConsent()
-		setConsent(stored)
-		if (stored === 'accepted') loadAnalytics()
+		if (readConsent() === 'accepted') whenIdle(loadAnalytics)
 	}, [])
 
 	function handleChoice(next: Consent) {
@@ -25,8 +24,7 @@ export function CookieConsent() {
 	if (consent !== null) return null
 
 	return (
-		<div
-			role="dialog"
+		<section
 			aria-labelledby="cookie-consent-title"
 			aria-describedby="cookie-consent-description"
 			className="fixed inset-x-0 bottom-16 z-50 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur-md md:bottom-0"
@@ -39,7 +37,7 @@ export function CookieConsent() {
 					<p id="cookie-consent-description" className="text-sm leading-relaxed text-muted-foreground">
 						Siteyi geliştirmek için yalnızca onay verirseniz Google Analytics çerezi kullanılır.
 						Ayrıntılar{' '}
-						<Link to="/gizlilik" className="text-primary underline-offset-4 hover:underline">
+						<Link to="/gizlilik" className="rounded-sm text-primary underline underline-offset-4">
 							gizlilik sayfasında
 						</Link>
 						.
@@ -54,7 +52,7 @@ export function CookieConsent() {
 					</Button>
 				</div>
 			</div>
-		</div>
+		</section>
 	)
 }
 
@@ -64,6 +62,18 @@ function readConsent(): Consent | null {
 		return value === 'accepted' || value === 'rejected' ? value : null
 	} catch {
 		return null
+	}
+}
+
+/**
+ * Analitik, ilk boyama ve etkileşimle yarışmasın diye tarayıcı boşa çıkınca
+ * yüklenir (LCP/INP). requestIdleCallback olmayan tarayıcılarda kısa bir gecikme.
+ */
+function whenIdle(callback: () => void) {
+	if ('requestIdleCallback' in window) {
+		window.requestIdleCallback(callback, { timeout: 4000 })
+	} else {
+		setTimeout(callback, 2000)
 	}
 }
 

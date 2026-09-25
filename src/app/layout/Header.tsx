@@ -1,7 +1,15 @@
 import { MenuIcon } from 'lucide-react'
+import { useRef } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import {
+	Sheet,
+	SheetClose,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from '@/components/ui/sheet'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Container } from '@/components/layout/container'
 import { Logomark } from '@/components/logomark'
@@ -16,11 +24,18 @@ const navigation = [
 export function Header() {
 	const location = useLocation()
 	const showAdminLink = location.pathname.startsWith('/admin')
+	// Menüden bir bağlantı seçildiyse çekmece kapanınca odak tetikleyiciye değil
+	// yeni sayfanın içeriğine gitsin.
+	const navigatedFromSheet = useRef(false)
 
 	return (
 		<header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
 			<Container className="flex items-center justify-between gap-4 py-3.5">
-				<Link to="/" className="group flex items-center gap-2.5 leading-none">
+				<Link
+					to="/"
+					aria-label="Sosyal Girişimler Rehberi — ana sayfa"
+					className="group flex items-center gap-2.5 rounded-md leading-none"
+				>
 					<Logomark animated className="size-7" />
 					<div className="flex flex-col gap-0.5">
 						<span className="text-[15px] font-semibold leading-none tracking-tight transition-colors group-hover:text-primary">
@@ -31,7 +46,8 @@ export function Header() {
 						</span>
 					</div>
 				</Link>
-				<nav className="hidden items-center gap-1 md:flex">
+				{/* NavLink etkin bağlantıya otomatik olarak aria-current="page" ekler. */}
+				<nav aria-label="Ana menü" className="hidden items-center gap-1 md:flex">
 					{navigation.map((item) => (
 						<NavLink
 							key={item.href}
@@ -66,28 +82,41 @@ export function Header() {
 							<MenuIcon />
 						</Button>
 					</SheetTrigger>
-					<SheetContent>
+					<SheetContent
+						onClick={(event) => {
+							if ((event.target as HTMLElement).closest('a')) navigatedFromSheet.current = true
+						}}
+						onCloseAutoFocus={(event) => {
+							if (!navigatedFromSheet.current) return
+							navigatedFromSheet.current = false
+							event.preventDefault()
+							document.getElementById('main-content')?.focus({ preventScroll: true })
+						}}
+					>
 						<SheetHeader>
 							<SheetTitle>Menü</SheetTitle>
 						</SheetHeader>
-						<nav className="mt-6 flex flex-col gap-1 px-4">
+						<nav aria-label="Mobil menü" className="mt-6 flex flex-col gap-1 px-4">
 							{navigation.map((item) => (
-								<Button
-									key={item.href}
-									asChild
-									variant="ghost"
-									className="justify-start"
-								>
-									<Link to={item.href}>{item.label}</Link>
-								</Button>
+								<SheetClose key={item.href} asChild>
+									<Button asChild variant="ghost" className="justify-start aria-[current=page]:bg-secondary">
+										<NavLink to={item.href} end={item.href === '/'}>
+											{item.label}
+										</NavLink>
+									</Button>
+								</SheetClose>
 							))}
-							<Button asChild className="mt-2 justify-start">
-								<Link to="/girisim-ekle">Girişim ekle</Link>
-							</Button>
-							{showAdminLink && (
-								<Button asChild variant="outline" className="mt-1 justify-start">
-									<Link to="/admin">Admin</Link>
+							<SheetClose asChild>
+								<Button asChild className="mt-2 justify-start">
+									<NavLink to="/girisim-ekle">Girişim ekle</NavLink>
 								</Button>
+							</SheetClose>
+							{showAdminLink && (
+								<SheetClose asChild>
+									<Button asChild variant="outline" className="mt-1 justify-start">
+										<Link to="/admin">Admin</Link>
+									</Button>
+								</SheetClose>
 							)}
 						</nav>
 						<div className="mt-6 flex items-center justify-between border-t border-border px-4 pt-4">

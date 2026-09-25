@@ -1,5 +1,5 @@
 import { SearchIcon, SearchXIcon, SlidersHorizontalIcon } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
 import { FilterSidebar } from '@/features/directory/FilterSidebar'
@@ -28,6 +28,7 @@ import { ErrorBlock, LoadingGrid } from '@/components/StateBlock'
 import { EmptyState } from '@/components/layout/empty-state'
 import { Pager } from '@/components/Pager'
 import { PageHeader } from '@/components/layout/page-header'
+import { scrollBehavior, useDocumentTitle } from '@/lib/a11y'
 
 const SORT_OPTIONS: Array<{ value: EnterpriseSort; label: string }> = [
 	{ value: 'featured', label: 'Öne çıkanlar' },
@@ -39,12 +40,14 @@ export function SearchPage() {
 	const [searchParams, setSearchParams] = useSearchParams()
 	const [meta, setMeta] = useState<DirectoryMeta | null>(null)
 	const [results, setResults] = useState<ListEnterprisesPayload | null>(null)
+	const [isFetching, setIsFetching] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [queryInput, setQueryInput] = useState(() => searchParams.get('query') ?? '')
 	const queryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+	const resultsRef = useRef<HTMLElement>(null)
 	const currentParams = useMemo(() => new URLSearchParams(searchParams), [searchParams])
 	const sort = (searchParams.get('sort') as EnterpriseSort) || 'featured'
-	const page = Number(searchParams.get('page')) || 1
+	useDocumentTitle('Girişimler')
 
 	useEffect(() => {
 		getDirectoryMeta()
@@ -52,11 +55,27 @@ export function SearchPage() {
 			.catch((err: Error) => setError(err.message))
 	}, [])
 
+	// Yeni sonuçlar gelene kadar eskileri soluk göster: iskelete geri dönmek
+	// sayfa yüksekliğini değiştirip düzen kaymasına (CLS) yol açıyordu.
 	useEffect(() => {
-		setResults(null)
+		let ignore = false
+		setIsFetching(true)
 		listEnterprises(currentParams)
-			.then(setResults)
-			.catch((err: Error) => setError(err.message))
+			.then((payload) => {
+				if (ignore) return
+				startTransition(() => {
+					setResults(payload)
+					setIsFetching(false)
+				})
+			})
+			.catch((err: Error) => {
+				if (ignore) return
+				setError(err.message)
+				setIsFetching(false)
+			})
+		return () => {
+			ignore = true
+		}
 	}, [currentParams])
 
 	useEffect(() => {
@@ -122,7 +141,9 @@ export function SearchPage() {
 		if (nextPage <= 1) next.delete('page')
 		else next.set('page', String(nextPage))
 		setSearchParams(next)
-		window.scrollTo({ top: 0, behavior: 'smooth' })
+		window.scrollTo({ top: 0, behavior: scrollBehavior() })
+		// Klavye kullanıcısı yeni sayfanın başına taşınsın, sayfalamada kalmasın.
+		resultsRef.current?.focus({ preventScroll: true })
 	}
 
 	const total = results?.total ?? 0
@@ -136,19 +157,28 @@ export function SearchPage() {
 				description="Kategori, hedef kitle, ülke, iş modeli ve SKA uyumuna göre filtreleyerek araştırmana yön ver."
 				actions={
 					<div className="flex items-center gap-2">
-						<div className="relative">
+						<div role="search" className="relative">
 							<SearchIcon
 								className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
 								aria-hidden="true"
 							/>
 							<Input
+								type="search"
+								aria-label="Girişim veya konu ara"
+								aria-controls="search-results"
 								value={queryInput}
 								onChange={(event) => handleQueryInput(event.target.value)}
 								placeholder="Girişim veya konu ara"
 								className="pl-9 md:w-80"
 							/>
 						</div>
-						{meta && (
+						{/* Meta gelmeden de yer tutulur; buton sonradan belirip arama kutusunu kaydırmaz. */}
+						{!meta ? (
+							<Button variant="outline" className="md:hidden" disabled>
+								<SlidersHorizontalIcon />
+								Filtre
+							</Button>
+						) : (
 							<Sheet>
 								<SheetTrigger asChild>
 									<Button variant="outline" className="md:hidden">
@@ -185,28 +215,38 @@ export function SearchPage() {
 			{error ? <ErrorBlock message={error} /> : null}
 
 			<div className="grid gap-10 md:grid-cols-[260px_1fr]">
-				<aside className="hidden md:block">
+				<aside aria-label="Filtreler" className="hidden md:block">
 					{meta ? (
 						<div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
 							<FilterSidebar meta={meta} selected={searchParams} onToggle={handleToggle} />
 						</div>
 					) : null}
 				</aside>
-				<main className="flex flex-col gap-6">
+				<section
+					id="search-results"
+					ref={resultsRef}
+					tabIndex={-1}
+					aria-label="Arama sonuçları"
+					aria-busy={isFetching}
+					className="flex scroll-mt-24 flex-col gap-6"
+				>
 					{meta && <ActiveFilterBar meta={meta} params={searchParams} onRemove={handleRemoveChip} onClear={handleClearAll} />}
 
 					<div className="flex flex-col items-start justify-between gap-3 border-b border-border pb-4 sm:flex-row sm:items-center">
-						<p className="text-sm text-muted-foreground">
+						{/* Filtre/arama değişince sonuç sayısı ekran okuyucuya bildirilir. */}
+						<p role="status" aria-live="polite" aria-atomic="true" className="text-sm text-muted-foreground">
 							{results
 								? total === 0
 									? 'Eşleşen girişim bulunamadı'
-									: `${total} girişim · sayfa ${page} / ${Math.max(1, Math.ceil(total / (results.pageSize || 24)))}`
+									: `${total} girişim · sayfa ${results.page} / ${Math.max(1, Math.ceil(total / (results.pageSize || 24)))}`
 								: 'Girişimler yükleniyor…'}
 						</p>
 						<div className="flex items-center gap-2">
-							<span className="text-sm text-muted-foreground">Sırala</span>
+							<span id="sort-label" className="text-sm text-muted-foreground">
+								Sırala
+							</span>
 							<Select value={sort} onValueChange={handleSortChange}>
-								<SelectTrigger className="w-44">
+								<SelectTrigger id="sort-trigger" aria-labelledby="sort-label sort-trigger" className="w-44">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -233,9 +273,17 @@ export function SearchPage() {
 						/>
 					) : (
 						<>
-							<div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-								{results.items.map((enterprise) => (
-									<EnterpriseCard key={enterprise.id} enterprise={enterprise} />
+							<div
+								className={`grid gap-5 transition-opacity sm:grid-cols-2 xl:grid-cols-3 ${
+									isFetching ? 'opacity-60' : ''
+								}`}
+							>
+								{results.items.map((enterprise, index) => (
+									<EnterpriseCard
+										key={enterprise.id}
+										enterprise={enterprise}
+										priority={index === 0 && results.page <= 1}
+									/>
 								))}
 							</div>
 							<Pager
@@ -247,7 +295,7 @@ export function SearchPage() {
 							/>
 						</>
 					)}
-				</main>
+				</section>
 			</div>
 		</div>
 	)

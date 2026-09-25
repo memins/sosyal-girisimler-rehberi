@@ -1,6 +1,6 @@
+import { useId } from 'react'
 import type { DirectoryMeta, TaxonomyItem } from '@/shared/types'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 
 type FilterSidebarProps = {
@@ -11,7 +11,7 @@ type FilterSidebarProps = {
 
 export function FilterSidebar({ meta, selected, onToggle }: FilterSidebarProps) {
 	return (
-		<aside className="flex flex-col gap-6">
+		<div className="flex flex-col gap-6">
 			<FilterGroup
 				title="Alan"
 				param="categories"
@@ -55,7 +55,7 @@ export function FilterSidebar({ meta, selected, onToggle }: FilterSidebarProps) 
 				selected={selected}
 				onToggle={onToggle}
 			/>
-		</aside>
+		</div>
 	)
 }
 
@@ -69,25 +69,34 @@ type FilterGroupProps = {
 
 function FilterGroup({ title, param, items, selected, onToggle }: FilterGroupProps) {
 	const values = new Set((selected.get(param) ?? '').split(',').filter(Boolean))
+	// Masaüstü kenar çubuğu ve mobil çekmece aynı anda DOM'da olabilir; kimlikler çakışmasın.
+	const idPrefix = useId()
 
 	return (
-		<section className="flex flex-col gap-3">
-			<div className="flex flex-col gap-1">
-				<h3 className="text-sm font-semibold">{title}</h3>
-				<Separator />
-			</div>
+		// fieldset/legend: ekran okuyucu her kutuyu grubuyla birlikte okur ("Ülke, Türkiye, işaretli").
+		<fieldset className="flex min-w-0 flex-col gap-3">
+			<legend className="mb-1 text-sm font-semibold">
+				{title}
+				{values.size > 0 ? <span className="sr-only">, {values.size} seçili</span> : null}
+			</legend>
+			<Separator />
 			<div className="flex flex-col gap-3">
-				{items.map((item) => (
-					<label key={item.id} className="flex cursor-pointer items-center gap-3 text-sm">
-						<Checkbox
-							checked={values.has(item.id)}
-							onCheckedChange={() => onToggle(param, item.id)}
-							aria-label={item.name}
-						/>
-						<Label className="cursor-pointer font-normal leading-5">{item.name}</Label>
-					</label>
-				))}
+				{items.map((item) => {
+					const id = `${idPrefix}-${item.id}`
+					return (
+						<div key={item.id} className="flex items-center gap-3 text-sm">
+							<Checkbox
+								id={id}
+								checked={values.has(item.id)}
+								onCheckedChange={() => onToggle(param, item.id)}
+							/>
+							<label htmlFor={id} className="cursor-pointer leading-5">
+								{item.name}
+							</label>
+						</div>
+					)
+				})}
 			</div>
-		</section>
+		</fieldset>
 	)
 }

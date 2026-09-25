@@ -1,4 +1,4 @@
-import { ArrowRightIcon, SearchIcon, SparklesIcon } from 'lucide-react'
+import { ArrowRightIcon, PauseIcon, PlayIcon, SearchIcon, SparklesIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -19,6 +19,7 @@ import { ErrorBlock, LoadingGrid } from '@/components/StateBlock'
 import { Logomark } from '@/components/logomark'
 import { TaxonomyIcon } from '@/lib/taxonomy-icon'
 import { SDG_DATA, type SdgMeta } from '@/lib/sdg'
+import { prefersReducedMotion, useDocumentTitle } from '@/lib/a11y'
 
 const POPULAR_CATEGORIES = [
 	{ label: 'Eğitim', categoryId: 'egitim' },
@@ -31,6 +32,7 @@ export function HomePage() {
 	const [query, setQuery] = useState('')
 	const [data, setData] = useState<HomePayload | null>(null)
 	const [error, setError] = useState<string | null>(null)
+	useDocumentTitle('')
 
 	useEffect(() => {
 		getHome()
@@ -102,6 +104,8 @@ function HeroSection({ query, onQueryChange, onSubmit, data }: HeroSectionProps)
 						</p>
 					</div>
 					<form
+						role="search"
+						aria-label="Girişim ara"
 						onSubmit={onSubmit}
 						className="flex w-full max-w-2xl items-center gap-2 rounded-2xl border border-border bg-background p-1.5 shadow-sm focus-within:border-primary/50 focus-within:shadow-md"
 					>
@@ -111,6 +115,8 @@ function HeroSection({ query, onQueryChange, onSubmit, data }: HeroSectionProps)
 								aria-hidden="true"
 							/>
 							<Input
+								type="search"
+								aria-label="Girişim veya konu ara"
 								value={query}
 								onChange={(event) => onQueryChange(event.target.value)}
 								placeholder="Gıda israfı, erişilebilirlik, eğitim..."
@@ -122,19 +128,24 @@ function HeroSection({ query, onQueryChange, onSubmit, data }: HeroSectionProps)
 							<ArrowRightIcon />
 						</Button>
 					</form>
-					{data?.stats ? (
-						<p className="text-sm text-muted-foreground lg:hidden">
-							<span className="font-semibold text-foreground">
-								{data.stats.enterprises} girişim
-							</span>
-							{' · '}
-							<span className="font-semibold text-foreground">
-								{data.stats.countries} ülke
-							</span>
-						</p>
-					) : null}
-					<div className="flex flex-wrap items-center gap-2">
-						<span className="text-xs text-muted-foreground">Popüler aramalar:</span>
+					{/* Veri gelmeden de satır yüksekliği korunur; altındaki içerik kaymaz (CLS). */}
+					<p className="min-h-5 text-sm text-muted-foreground lg:hidden">
+						<span className="font-semibold text-foreground">
+							{data?.stats.enterprises ?? '—'} girişim
+						</span>
+						{' · '}
+						<span className="font-semibold text-foreground">
+							{data?.stats.countries ?? '—'} ülke
+						</span>
+					</p>
+					<div
+						role="group"
+						aria-labelledby="popular-searches"
+						className="flex flex-wrap items-center gap-2"
+					>
+						<span id="popular-searches" className="text-xs text-muted-foreground">
+							Popüler aramalar:
+						</span>
 						{POPULAR_CATEGORIES.map((item) => (
 							<Button
 								key={item.label}
@@ -165,14 +176,18 @@ interface HeroPreviewProps {
 function HeroPreview({ stats, featured }: HeroPreviewProps) {
 	const [hovered, setHovered] = useState<SdgMeta | null>(null)
 	const [tickerIndex, setTickerIndex] = useState(0)
+	// Kendiliğinden değişen içerik durdurulabilmeli (WCAG 2.2.2); hareket
+	// azaltma tercih edilmişse döngü hiç başlamaz.
+	const [isTickerPaused, setIsTickerPaused] = useState(prefersReducedMotion)
+	const [isTickerHeld, setIsTickerHeld] = useState(false)
 
 	useEffect(() => {
-		if (featured.length === 0) return
+		if (featured.length === 0 || isTickerPaused || isTickerHeld) return
 		const interval = setInterval(() => {
 			setTickerIndex((i) => (i + 1) % featured.length)
 		}, 3500)
 		return () => clearInterval(interval)
-	}, [featured.length])
+	}, [featured.length, isTickerPaused, isTickerHeld])
 
 	const current = featured[tickerIndex]
 
@@ -193,6 +208,9 @@ function HeroPreview({ stats, featured }: HeroPreviewProps) {
 			<div
 				className="grid grid-cols-5 gap-2"
 				onMouseLeave={() => setHovered(null)}
+				onBlur={(event) => {
+					if (!event.currentTarget.contains(event.relatedTarget)) setHovered(null)
+				}}
 			>
 				{SDG_DATA.map((sdg, index) => {
 					const Icon = sdg.icon
@@ -201,7 +219,9 @@ function HeroPreview({ stats, featured }: HeroPreviewProps) {
 							key={sdg.id}
 							to={`/arama?sdgs=${sdg.id}`}
 							title={`${sdg.id}. ${sdg.name}`}
+							aria-label={`SKA ${sdg.id}: ${sdg.name}`}
 							onMouseEnter={() => setHovered(sdg)}
+							onFocus={() => setHovered(sdg)}
 							className="group relative flex aspect-square animate-in fade-in zoom-in-95 flex-col items-center justify-center overflow-hidden rounded-xl text-white transition-all duration-300 ease-out hover:z-10 hover:scale-110 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 							style={{
 								background: sdg.color,
@@ -239,9 +259,15 @@ function HeroPreview({ stats, featured }: HeroPreviewProps) {
 				</Link>
 			</div>
 
-			<div className="flex items-center gap-2 rounded-xl border border-border bg-card/40 px-3 py-2 text-xs">
+			<div
+				className="flex items-center gap-2 rounded-xl border border-border bg-card/40 px-3 py-2 text-xs"
+				onMouseEnter={() => setIsTickerHeld(true)}
+				onMouseLeave={() => setIsTickerHeld(false)}
+				onFocus={() => setIsTickerHeld(true)}
+				onBlur={() => setIsTickerHeld(false)}
+			>
 				<SparklesIcon className="size-3.5 shrink-0 text-primary" />
-				<span className="text-muted-foreground">Şu an öne çıkan:</span>
+				<span className="shrink-0 text-muted-foreground">Şu an öne çıkan:</span>
 				{current ? (
 					<Link
 						to={`/girisimler/${current.slug}`}
@@ -255,6 +281,16 @@ function HeroPreview({ stats, featured }: HeroPreviewProps) {
 				) : (
 					<span className="text-muted-foreground">—</span>
 				)}
+				{featured.length > 1 ? (
+					<button
+						type="button"
+						onClick={() => setIsTickerPaused((paused) => !paused)}
+						aria-label={isTickerPaused ? 'Öne çıkanları döndürmeyi başlat' : 'Öne çıkanları döndürmeyi durdur'}
+						className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+					>
+						{isTickerPaused ? <PlayIcon className="size-3" /> : <PauseIcon className="size-3" />}
+					</button>
+				) : null}
 			</div>
 		</div>
 	)
@@ -295,13 +331,17 @@ function HomeContent({ data }: HomeContentProps) {
 							</Link>
 						</Button>
 					</div>
-					<div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2 lg:hidden">
+					{/* Kaydırmalı liste: her kart bir bağlantı; Tab ile gezildikçe görünür alana kayar. */}
+					<ul
+						aria-label="Haftanın girişimleri"
+						className="-mx-1 flex snap-x snap-mandatory scroll-px-1 gap-4 overflow-x-auto px-1 pt-1 pb-2 lg:hidden"
+					>
 						{data.featured.map((enterprise) => (
-							<div key={enterprise.id} className="w-[85%] shrink-0 snap-center">
+							<li key={enterprise.id} className="w-[85%] shrink-0 snap-center">
 								<EnterpriseCard enterprise={enterprise} />
-							</div>
+							</li>
 						))}
-					</div>
+					</ul>
 					<div className="hidden lg:block">
 						{lead && compact.length > 0 ? (
 							<div className="grid gap-4 lg:grid-cols-2">

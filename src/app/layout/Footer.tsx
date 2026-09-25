@@ -36,7 +36,11 @@ export function Footer() {
 			<Container className="py-14">
 				<div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
 					<div className="flex flex-col gap-3">
-						<Link to="/" className="group flex items-center gap-2.5 leading-none">
+						<Link
+							to="/"
+							aria-label="Sosyal Girişimler Rehberi — ana sayfa"
+							className="group flex w-fit items-center gap-2.5 rounded-md leading-none"
+						>
 							<Logomark animated className="size-8" />
 							<div className="flex flex-col gap-0.5">
 								<span className="text-base font-semibold leading-none tracking-tight transition-colors group-hover:text-primary">
@@ -53,11 +57,18 @@ export function Footer() {
 						</p>
 						<NewsletterForm />
 					</div>
-					{sections.map((section) => (
-						<div key={section.title} className="flex flex-col gap-3">
-							<h3 className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+					{sections.map((section, index) => (
+						<nav
+							key={section.title}
+							aria-labelledby={`footer-nav-${index}`}
+							className="flex flex-col gap-3"
+						>
+							<h2
+								id={`footer-nav-${index}`}
+								className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase"
+							>
 								{section.title}
-							</h3>
+							</h2>
 							<ul className="flex flex-col gap-2">
 								{section.links.map((link) => (
 									<li key={link.to}>
@@ -79,7 +90,7 @@ export function Footer() {
 									</li>
 								))}
 							</ul>
-						</div>
+						</nav>
 					))}
 				</div>
 				<div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground md:flex-row md:items-center">

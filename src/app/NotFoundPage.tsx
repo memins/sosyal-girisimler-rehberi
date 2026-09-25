@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { useDocumentTitle } from '@/lib/a11y'
 
 const popularLinks = [
 	{ to: '/arama', label: 'Girişimler' },
@@ -8,6 +9,7 @@ const popularLinks = [
 ]
 
 export default function NotFoundPage() {
+	useDocumentTitle('Sayfa bulunamadı')
 	return (
 		<div className="flex flex-col items-center justify-center gap-8 py-16 text-center">
 			<div className="space-y-3">
