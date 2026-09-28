@@ -462,7 +462,8 @@ async function handleAdminRequest(request: Request, env: Env, url: URL): Promise
 
 	if (request.method === 'POST' && pathname === '/api/admin/login') {
 		const body = (await readJsonBody(request)) as AdminLoginInput
-		const validation = validateAuthCredentials(body.email, body.password)
+		// Length rules apply when a password is set, not when logging in.
+		const validation = validateAuthCredentials(body.email, body.password, { minPasswordLength: 1 })
 
 		if (!validation.ok) {
 			return json(validation, { status: 422 })
@@ -869,15 +870,20 @@ function errorMessage(error: unknown): string {
 	return raw
 }
 
-function validateAuthCredentials(email: unknown, password: unknown) {
+function validateAuthCredentials(
+	email: unknown,
+	password: unknown,
+	{ minPasswordLength = 10 }: { minPasswordLength?: number } = {},
+) {
 	const errors: Record<string, string> = {}
 
 	if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
 		errors.email = 'Geçerli bir e-posta adresi girin.'
 	}
 
-	if (typeof password !== 'string' || password.length < 10) {
-		errors.password = 'Şifre en az 10 karakter olmalı.'
+	if (typeof password !== 'string' || password.length < minPasswordLength) {
+		errors.password =
+			minPasswordLength > 1 ? 'Şifre en az 10 karakter olmalı.' : 'Şifre gerekli.'
 	}
 
 	return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true }

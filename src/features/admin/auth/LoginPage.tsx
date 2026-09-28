@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input'
 
 const loginSchema = z.object({
 	email: z.string().trim().email('Geçerli bir e-posta adresi girin.'),
-	password: z.string().min(10, 'Şifre en az 10 karakter olmalı.'),
+	password: z.string().min(1, 'Şifre gerekli.'),
 })
 
 type LoginValues = z.input<typeof loginSchema>
