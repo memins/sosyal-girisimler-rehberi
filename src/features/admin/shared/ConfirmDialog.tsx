@@ -9,7 +9,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { cn } from '@/lib/utils'
 
 interface ConfirmDialogProps {
 	open: boolean
@@ -49,10 +48,7 @@ export function ConfirmDialog({
 							event.preventDefault()
 							void Promise.resolve(onConfirm()).then(() => onOpenChange(false))
 						}}
-						className={cn(
-							variant === 'destructive' &&
-								'bg-destructive text-white hover:bg-destructive/90',
-						)}
+						variant={variant}
 					>
 						{confirmLabel}
 					</AlertDialogAction>
