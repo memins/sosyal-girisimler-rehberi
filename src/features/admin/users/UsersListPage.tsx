@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2Icon, PlusIcon, UsersIcon } from 'lucide-react'
+import { KeyRoundIcon, Loader2Icon, PlusIcon, UsersIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Navigate } from 'react-router-dom'
@@ -57,12 +57,25 @@ const userSchema = z.object({
 
 type UserValues = z.input<typeof userSchema>
 
+const passwordSchema = z
+	.object({
+		password: z.string().min(10, 'Şifre en az 10 karakter olmalı.'),
+		confirm: z.string(),
+	})
+	.refine((values) => values.password === values.confirm, {
+		message: 'Şifreler aynı değil.',
+		path: ['confirm'],
+	})
+
+type PasswordValues = z.input<typeof passwordSchema>
+
 export function UsersListPage() {
 	const session = useAdminSession()
 	const [users, setUsers] = useState<Array<AdminUser> | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [sheetOpen, setSheetOpen] = useState(false)
 	const [confirmToggle, setConfirmToggle] = useState<AdminUser | null>(null)
+	const [passwordUser, setPasswordUser] = useState<AdminUser | null>(null)
 
 	useTopbarActions(
 		<Button size="sm" onClick={() => setSheetOpen(true)}>
@@ -74,6 +87,11 @@ export function UsersListPage() {
 	const form = useForm<UserValues>({
 		resolver: zodResolver(userSchema),
 		defaultValues: { email: '', password: '', role: 'admin' },
+	})
+
+	const passwordForm = useForm<PasswordValues>({
+		resolver: zodResolver(passwordSchema),
+		defaultValues: { password: '', confirm: '' },
 	})
 
 	async function loadUsers() {
@@ -104,6 +122,18 @@ export function UsersListPage() {
 			await loadUsers()
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Oluşturulamadı.')
+		}
+	}
+
+	async function onSetPassword(values: PasswordValues) {
+		if (!passwordUser) return
+		try {
+			await updateAdminUser(passwordUser.id, { password: values.password })
+			toast.success(`${passwordUser.email} için yeni şifre kaydedildi.`)
+			passwordForm.reset()
+			setPasswordUser(null)
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Şifre güncellenemedi.')
 		}
 	}
 
@@ -138,6 +168,7 @@ export function UsersListPage() {
 								<TableHead>Rol</TableHead>
 								<TableHead className="w-32">Durum</TableHead>
 								<TableHead>Oluşturuldu</TableHead>
+								<TableHead className="w-36" />
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -164,6 +195,19 @@ export function UsersListPage() {
 									</TableCell>
 									<TableCell className="text-xs text-muted-foreground">
 										{new Date(user.createdAt).toLocaleDateString('tr-TR')}
+									</TableCell>
+									<TableCell className="text-right">
+										<Button
+											size="sm"
+											variant="ghost"
+											onClick={() => {
+												passwordForm.reset()
+												setPasswordUser(user)
+											}}
+										>
+											<KeyRoundIcon />
+											Şifre belirle
+										</Button>
 									</TableCell>
 								</TableRow>
 							))}
@@ -231,6 +275,57 @@ export function UsersListPage() {
 								<Button type="submit" disabled={form.formState.isSubmitting}>
 									{form.formState.isSubmitting && <Loader2Icon className="animate-spin" />}
 									Oluştur
+								</Button>
+							</SheetFooter>
+						</form>
+					</Form>
+				</SheetContent>
+			</Sheet>
+
+			<Sheet open={!!passwordUser} onOpenChange={(open) => !open && setPasswordUser(null)}>
+				<SheetContent side="right" className="w-full max-w-md">
+					<SheetHeader>
+						<SheetTitle>Şifre belirle</SheetTitle>
+						<SheetDescription>
+							{passwordUser?.email} için yeni şifre. Kaydedince bu kullanıcının açık oturumları
+							kapanır; yeni şifreyi kişiye özel bir kanaldan ilet.
+						</SheetDescription>
+					</SheetHeader>
+					<Form {...passwordForm}>
+						<form
+							onSubmit={passwordForm.handleSubmit(onSetPassword)}
+							className="flex flex-col gap-4 px-4 py-4"
+						>
+							<FormField
+								control={passwordForm.control}
+								name="password"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Yeni şifre</FormLabel>
+										<FormControl>
+											<Input type="password" autoComplete="new-password" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={passwordForm.control}
+								name="confirm"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Yeni şifre (tekrar)</FormLabel>
+										<FormControl>
+											<Input type="password" autoComplete="new-password" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<SheetFooter className="gap-2 sm:flex-row">
+								<Button type="submit" disabled={passwordForm.formState.isSubmitting}>
+									{passwordForm.formState.isSubmitting && <Loader2Icon className="animate-spin" />}
+									Şifreyi kaydet
 								</Button>
 							</SheetFooter>
 						</form>

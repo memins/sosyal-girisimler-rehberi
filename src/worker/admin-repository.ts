@@ -231,6 +231,14 @@ export async function updateAdminUser(
 			.prepare(`UPDATE admin_users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
 			.bind(...params, userId)
 			.run()
+		// A new password (or deactivation) signs the user out everywhere, except
+		// the actor's own current session when they change their own password.
+		if (input.password || input.isActive === false) {
+			await db
+				.prepare('DELETE FROM admin_sessions WHERE user_id = ? AND user_id != ?')
+				.bind(userId, actorUserId)
+				.run()
+		}
 		await writeAuditLog(db, actorUserId, 'admin_user.update', userId)
 	}
 
