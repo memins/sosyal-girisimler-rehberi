@@ -1,10 +1,13 @@
-import { SearchIcon, SearchXIcon, SlidersHorizontalIcon } from 'lucide-react'
+import { SearchIcon, SearchXIcon, SlidersHorizontalIcon, Trash2Icon } from 'lucide-react'
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { EnterpriseCard } from '@/features/directory/EnterpriseCard'
 import { FilterSidebar } from '@/features/directory/FilterSidebar'
 import { ActiveFilterBar } from '@/features/directory/ActiveFilterBar'
-import { getDirectoryMeta, listEnterprises } from '@/lib/api'
+import { ConfirmDialog } from '@/features/admin/shared/ConfirmDialog'
+import { usePublicAdmin } from '@/features/admin/state/usePublicAdmin'
+import { deleteEnterprise, getDirectoryMeta, listEnterprises } from '@/lib/api'
 import type { DirectoryMeta, EnterpriseSort, ListEnterprisesPayload } from '@/shared/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,7 +50,16 @@ export function SearchPage() {
 	const resultsRef = useRef<HTMLElement>(null)
 	const currentParams = useMemo(() => new URLSearchParams(searchParams), [searchParams])
 	const sort = (searchParams.get('sort') as EnterpriseSort) || 'featured'
+	const admin = usePublicAdmin()
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+	const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+	const [isDeleting, setIsDeleting] = useState(false)
 	useDocumentTitle('Girişimler')
+
+	// Seçim yalnızca görünen sayfaya aittir; filtre ya da sayfa değişince sıfırlanır.
+	useEffect(() => {
+		setSelectedIds(new Set())
+	}, [currentParams])
 
 	useEffect(() => {
 		getDirectoryMeta()
@@ -146,8 +158,48 @@ export function SearchPage() {
 		resultsRef.current?.focus({ preventScroll: true })
 	}
 
+	function handleSelect(id: string, selected: boolean) {
+		setSelectedIds((current) => {
+			const next = new Set(current)
+			if (selected) next.add(id)
+			else next.delete(id)
+			return next
+		})
+	}
+
+	function handleSelectAllOnPage() {
+		setSelectedIds(new Set(results?.items.map((item) => item.id) ?? []))
+	}
+
+	async function handleBulkDelete() {
+		const ids = Array.from(selectedIds)
+		setIsDeleting(true)
+		const outcomes = await Promise.allSettled(ids.map((id) => deleteEnterprise(id)))
+		setIsDeleting(false)
+
+		const deleted = new Set(ids.filter((_, index) => outcomes[index].status === 'fulfilled'))
+		const failedCount = ids.length - deleted.size
+		// Uç önbellek listeyi bir süre eski gösterebileceği için yeniden çekmek
+		// yerine silinenleri yerelde düşürüyoruz.
+		setResults((current) =>
+			current
+				? {
+						...current,
+						items: current.items.filter((item) => !deleted.has(item.id)),
+						total: current.total - deleted.size,
+					}
+				: current,
+		)
+		setSelectedIds(new Set(ids.filter((id) => !deleted.has(id))))
+
+		if (deleted.size > 0) toast.success(`${deleted.size} girişim silindi.`)
+		if (failedCount > 0) toast.error(`${failedCount} girişim silinemedi.`)
+	}
+
 	const total = results?.total ?? 0
 	const isEmpty = results !== null && total === 0
+	const pageItemCount = results?.items.length ?? 0
+	const selectedCount = selectedIds.size
 
 	return (
 		<div className="flex flex-col gap-10">
@@ -283,6 +335,10 @@ export function SearchPage() {
 										key={enterprise.id}
 										enterprise={enterprise}
 										priority={index === 0 && results.page <= 1}
+										selected={admin ? selectedIds.has(enterprise.id) : undefined}
+										onSelectedChange={
+											admin ? (selected) => handleSelect(enterprise.id, selected) : undefined
+										}
 									/>
 								))}
 							</div>
@@ -295,7 +351,46 @@ export function SearchPage() {
 							/>
 						</>
 					)}
+
+					{admin && selectedCount > 0 && (
+						<div
+							role="toolbar"
+							aria-label="Toplu işlemler"
+							className="sticky bottom-4 z-20 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/40 bg-background/95 p-3 shadow-lg backdrop-blur"
+						>
+							<p className="mr-auto text-sm font-medium">{selectedCount} girişim seçili</p>
+							{selectedCount < pageItemCount && (
+								<Button size="sm" variant="outline" onClick={handleSelectAllOnPage}>
+									Sayfadakilerin tümünü seç ({pageItemCount})
+								</Button>
+							)}
+							<Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+								Seçimi temizle
+							</Button>
+							<Button
+								size="sm"
+								variant="destructive"
+								disabled={isDeleting}
+								onClick={() => setIsConfirmOpen(true)}
+							>
+								<Trash2Icon aria-hidden="true" />
+								{isDeleting ? 'Siliniyor…' : 'Seçilenleri sil'}
+							</Button>
+						</div>
+					)}
 				</section>
+
+				{admin && (
+					<ConfirmDialog
+						open={isConfirmOpen}
+						onOpenChange={setIsConfirmOpen}
+						title={`${selectedCount} girişim kalıcı olarak silinsin mi?`}
+						description="Bu işlem geri alınamaz."
+						confirmLabel="Sil"
+						variant="destructive"
+						onConfirm={handleBulkDelete}
+					/>
+				)}
 			</div>
 		</div>
 	)

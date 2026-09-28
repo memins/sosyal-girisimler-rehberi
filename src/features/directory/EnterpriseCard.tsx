@@ -5,6 +5,8 @@ import { usePublicAdmin } from '@/features/admin/state/usePublicAdmin'
 import type { EnterpriseSummary } from '@/shared/types'
 import { formatAddedAgo } from '@/lib/relative-time'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 
 interface EnterpriseCardProps {
 	enterprise: EnterpriseSummary
@@ -14,6 +16,9 @@ interface EnterpriseCardProps {
 	 * öncelikle istenir. Yalnızca listenin ilk kartına verilmeli.
 	 */
 	priority?: boolean
+	/** Editör toplu seçimi; verilmezse kartta seçim kutusu gösterilmez. */
+	selected?: boolean
+	onSelectedChange?: (selected: boolean) => void
 }
 
 /** Liste kartlarında görseller varsayılan olarak ekran dışı kabul edilir. */
@@ -28,13 +33,38 @@ function imageLoading(priority: boolean) {
  * bir bağlantının içine başka etkileşimli öğe koymak geçersizdir ve ekran
  * okuyucularda ikisini birbirine karıştırır.
  */
-function CardFrame({ enterprise, children }: { enterprise: EnterpriseSummary; children: ReactNode }) {
+function CardFrame({
+	enterprise,
+	selected = false,
+	onSelectedChange,
+	children,
+}: {
+	enterprise: EnterpriseSummary
+	selected?: boolean
+	onSelectedChange?: (selected: boolean) => void
+	children: ReactNode
+}) {
 	const admin = usePublicAdmin()
 	if (!admin) return children
 
 	return (
-		<div className="relative h-full">
+		<div
+			className={cn(
+				'relative h-full rounded-2xl',
+				selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+			)}
+		>
 			{children}
+			{onSelectedChange && (
+				<span className="absolute top-3 left-3 z-10 inline-flex rounded-md bg-background/95 p-1.5 shadow">
+					<Checkbox
+						checked={selected}
+						onCheckedChange={(value) => onSelectedChange(value === true)}
+						aria-label={`${enterprise.name} seç`}
+						className="size-5"
+					/>
+				</span>
+			)}
 			<Link
 				to={`/admin/enterprises/${enterprise.id}/edit`}
 				aria-label={`${enterprise.name} düzenle`}
@@ -51,12 +81,14 @@ export function EnterpriseCard({
 	enterprise,
 	showAddedAt = false,
 	priority = false,
+	selected,
+	onSelectedChange,
 }: EnterpriseCardProps) {
 	const primaryCountry = enterprise.countries[0]
 	const primaryBusinessModel = enterprise.businessModels?.[0]
 
 	return (
-		<CardFrame enterprise={enterprise}>
+		<CardFrame enterprise={enterprise} selected={selected} onSelectedChange={onSelectedChange}>
 			<Link
 				to={`/girisimler/${enterprise.slug}`}
 				className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
